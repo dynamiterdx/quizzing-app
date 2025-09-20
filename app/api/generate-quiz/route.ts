@@ -1,0 +1,73 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { azureResponseJson, validateQuiz } from '@/lib/azure';
+
+const quizSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['topic', 'difficulty', 'language', 'timed', 'questions'],
+  properties: {
+    topic: { type: 'string' },
+    difficulty: { type: 'string', enum: ['beginner', 'intermediate', 'advanced'] },
+    language: { type: 'string' },
+    timed: { type: 'boolean' },
+    durationSeconds: { type: 'integer', minimum: 30 },
+    questions: {
+      type: 'array',
+      minItems: 3,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['id', 'question', 'choices', 'correctChoiceId', 'explanation'],
+        properties: {
+          id: { type: 'string' },
+          question: { type: 'string' },
+          choices: {
+            type: 'array',
+            minItems: 3,
+            maxItems: 5,
+            items: {
+              type: 'object',
+              additionalProperties: false,
+              required: ['id', 'text'],
+              properties: {
+                id: { type: 'string' },
+                text: { type: 'string' },
+              },
+            },
+          },
+          correctChoiceId: { type: 'string' },
+          explanation: { type: 'string' },
+          subtopic: { type: 'string' },
+          difficulty: { type: 'string', enum: ['beginner', 'intermediate', 'advanced'] },
+          language: { type: 'string' },
+        },
+      },
+    },
+  },
+} as const;
+
+export async function POST(req: NextRequest) {
+  const { topic, difficulty, numQuestions, timed, language } = await req.json();
+
+  const system = `You are a helpful quiz generator. Create clear multiple-choice questions with exactly one correct answer, age-appropriate, no tricks, no duplicates. Keep explanations brief and helpful. Return only JSON using the provided schema.`;
+  const user = `Generate a focused quiz on topic: "${topic}". Difficulty: ${difficulty}. Language: ${language}. Number of questions: ${numQuestions}. Timed: ${timed ? 'yes' : 'no'}. Ensure one unambiguous correct option per question.`;
+
+  // Attempt up to 2 retries plus validation loop
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const quiz = await azureResponseJson<any>({
+        system,
+        user,
+        jsonSchema: quizSchema as any,
+        temperature: 0.6,
+        retries: 1,
+      });
+      const v = validateQuiz(quiz);
+      if (v.ok) return NextResponse.json(quiz);
+    } catch (e: any) {
+      if (attempt === 2) return NextResponse.json({ error: e?.message || 'Failed to generate quiz' }, { status: 500 });
+    }
+  }
+  return NextResponse.json({ error: 'Could not get a high-quality quiz after retries' }, { status: 502 });
+}
+
