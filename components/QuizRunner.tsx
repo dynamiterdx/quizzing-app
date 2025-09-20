@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { QuizQuestion, QuizSet } from '@/types/quiz';
 import { ProgressBar } from './ProgressBar';
 import { QuestionCard } from './QuestionCard';
@@ -11,6 +11,7 @@ export function QuizRunner({ quiz, onPracticeMore }: { quiz: QuizSet; onPractice
   const [answers, setAnswers] = useState<Answers>({});
   const [submitted, setSubmitted] = useState(false);
   const [expired, setExpired] = useState(false);
+  const topRef = useRef<HTMLDivElement | null>(null);
 
   const handleChange = (qid: string, cid: string) => setAnswers((a) => ({ ...a, [qid]: cid }));
   const total = quiz.questions.length;
@@ -24,6 +25,10 @@ export function QuizRunner({ quiz, onPracticeMore }: { quiz: QuizSet; onPractice
 
   const onSubmit = useCallback(() => {
     setSubmitted(true);
+    setTimeout(() => {
+      if (topRef.current) topRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      else if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 0);
   }, []);
 
   const timeUp = useCallback(() => {
@@ -32,7 +37,7 @@ export function QuizRunner({ quiz, onPracticeMore }: { quiz: QuizSet; onPractice
   }, []);
 
   return (
-    <div className="mt-3">
+    <div className="mt-3" ref={topRef}>
       <div className="card">
         <div className="flex justify-between">
           <div>
@@ -70,21 +75,27 @@ export function QuizRunner({ quiz, onPracticeMore }: { quiz: QuizSet; onPractice
           <button className="btn" onClick={onSubmit} disabled={answeredCount === 0}>Submit</button>
           <span className="muted">You can submit anytime.</span>
         </div>
-      ) : (
-        <div className="mt-3 card">
-          <div className="flex justify-between">
-            <div>
-              <div className="score">Score: {correctCount}/{total} ({Math.round((correctCount / total) * 100)}%)</div>
-              {expired && <div className="warn">Time expired. Unanswered are marked incorrect.</div>}
+      ) : (() => {
+        const pct = Math.round((correctCount / total) * 100);
+        const tier = pct >= 80 ? 'good' : pct >= 50 ? 'ok' : 'bad';
+        const emoji = pct >= 80 ? '🏆' : pct >= 50 ? '🎉' : '✨';
+        const line = pct >= 80 ? 'Excellent!' : pct >= 50 ? 'Nice progress!' : 'You’re getting there!';
+        return (
+          <div className={`mt-3 score-banner ${tier}`} role="status" aria-live="polite">
+            <div className="left">
+              <div className="emoji" aria-hidden>{emoji}</div>
+              <div>
+                <div className="big">{line} {pct}%</div>
+                <div className="muted">Score: {correctCount} of {total}</div>
+                {expired && <div className="warn">Time expired. Unanswered are marked incorrect.</div>}
+              </div>
             </div>
-            <div className="pill">{missed.length} to practice</div>
+            <div>
+              <button onClick={() => onPracticeMore?.(missed)} disabled={missed.length === 0}>Practice similar to missed</button>
+            </div>
           </div>
-          <div className="mt-2">
-            <button onClick={() => onPracticeMore?.(missed)} disabled={missed.length === 0}>Practice similar to missed</button>
-          </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
-
