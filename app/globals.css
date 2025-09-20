@@ -86,9 +86,17 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px
 .progress > div { height: 100%; background: linear-gradient(180deg, var(--primary), var(--primary-600)); }
 
 .answers { display: grid; gap: 10px; }
-.answers label { display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; cursor: pointer; background: #ffffff; box-shadow: var(--shadow-sm); }
+.answers label { display: flex; align-items: center; justify-content: flex-start; gap: 12px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; cursor: pointer; background: #ffffff; box-shadow: var(--shadow-sm); text-align: left; }
+.answers label span { text-align: left; }
+.answers label .ans-text { flex: 1; }
 .answers input[type="radio"] { accent-color: var(--primary); }
 .answers label:focus-within { outline: 3px solid var(--focus); outline-offset: 2px; }
+.answers label.selected { border-color: #d8d1ff; background: #f7f5ff; }
+.answers label.correct { border-color: var(--success); background: #eaf8f0; }
+.answers label.wrong { border-color: var(--danger); background: #fff0f0; }
+.answers .ans-icon { width: 22px; height: 22px; display: grid; place-items: center; font-size: 14px; border-radius: 999px; }
+.answers .ans-icon.correct { color: #065f46; background: #bbf7d0; }
+.answers .ans-icon.wrong { color: #7f1d1d; background: #fecaca; }
 
 .pill { display: inline-block; padding: 4px 10px; border-radius: 999px; background: #f5f1ff; border: 1px solid var(--border); color: var(--muted); font-size: 0.8rem; font-weight: 600; }
 .score { font-weight: 800; }
@@ -108,4 +116,3 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px
 /* Feature cards styling (landing) */
 .feature-card { display: flex; gap: 12px; align-items: center; border-radius: 16px; padding: 14px; background: #fff; border: 1px solid var(--border); box-shadow: var(--shadow-sm); }
 .feature-card .badge { width: 40px; height: 40px; border-radius: 12px; background: #ede7ff; display: grid; place-items: center; font-size: 20px; }
-

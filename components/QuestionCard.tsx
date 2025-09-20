@@ -26,13 +26,15 @@ export function QuestionCard({
       <div className="answers mt-2" role="radiogroup" aria-labelledby={`q-${q.id}`}>
         {q.choices.map((c) => {
           const checked = value === c.id;
-          let style: React.CSSProperties | undefined;
-          if (review) {
-            if (c.id === review.correctChoiceId) style = { borderColor: 'var(--success)' };
-            else if (checked && c.id !== review.correctChoiceId) style = { borderColor: 'var(--danger)' };
-          }
+          const isCorrect = review && c.id === review.correctChoiceId;
+          const isWrongSelected = review && checked && !isCorrect;
+          const cls = [
+            checked && !review ? 'selected' : '',
+            isCorrect ? 'correct' : '',
+            isWrongSelected ? 'wrong' : '',
+          ].filter(Boolean).join(' ');
           return (
-            <label key={c.id} style={style} tabIndex={0}>
+            <label key={c.id} className={cls} tabIndex={0}>
               <input
                 type="radio"
                 name={`q-${q.id}`}
@@ -41,7 +43,9 @@ export function QuestionCard({
                 onChange={() => onChange(c.id)}
                 aria-checked={checked}
               />
-              <span>{c.text}</span>
+              {review && isCorrect && <span className="ans-icon correct" aria-hidden>✓</span>}
+              {review && isWrongSelected && <span className="ans-icon wrong" aria-hidden>✕</span>}
+              <span className="ans-text">{c.text}</span>
             </label>
           );
         })}
@@ -55,4 +59,3 @@ export function QuestionCard({
     </div>
   );
 }
-
