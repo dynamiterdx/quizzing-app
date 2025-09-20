@@ -1,8 +1,6 @@
-import { NextRequest } from 'next/server';
-
 const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
 const apiKey = process.env.AZURE_OPENAI_API_KEY;
-const deployment = process.env.AZURE_OPENAI_DEPLOYMENT || 'gpt-5';
+const deployment = process.env.AZURE_OPENAI_DEPLOYMENT || 'gpt-4o-mini';
 const apiVersion = process.env.AZURE_OPENAI_API_VERSION || '2024-10-21';
 
 if (!endpoint || !apiKey) {
@@ -11,7 +9,18 @@ if (!endpoint || !apiKey) {
 
 type Schema = Record<string, unknown>;
 
-export async function azureResponseJson<T>(opts: {
+function tryParseJson<T>(text: string): T {
+  try { return JSON.parse(text) as T; } catch {}
+  const first = text.indexOf('{');
+  const last = text.lastIndexOf('}');
+  if (first !== -1 && last !== -1 && last > first) {
+    const slice = text.slice(first, last + 1);
+    return JSON.parse(slice) as T;
+  }
+  throw new Error('Model did not return valid JSON');
+}
+
+export async function azureChatJson<T>(opts: {
   system: string;
   user: string;
   jsonSchema: Schema;
@@ -19,14 +28,13 @@ export async function azureResponseJson<T>(opts: {
   temperature?: number;
   retries?: number;
 }): Promise<T> {
-  const url = `${endpoint}/openai/responses/v1?api-version=${apiVersion}`;
-  const body = {
-    model: deployment,
-    input: [
-      { role: 'system', content: [{ type: 'text', text: opts.system }] },
-      { role: 'user', content: [{ type: 'text', text: opts.user }] },
+  const url = `${endpoint}/openai/deployments/${deployment}/chat/completions?api-version=${apiVersion}`;
+  const body: any = {
+    messages: [
+      { role: 'system', content: `${opts.system}\nReturn only valid JSON that strictly matches the schema.` },
+      { role: 'user', content: opts.user },
     ],
-    temperature: opts.temperature ?? 0.7,
+    temperature: opts.temperature ?? 0.6,
     seed: opts.seed ?? 7,
     response_format: {
       type: 'json_schema',
@@ -39,27 +47,36 @@ export async function azureResponseJson<T>(opts: {
   };
 
   const doCall = async (): Promise<T> => {
-    const res = await fetch(url, {
+    const send = async (payload: any) => fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'api-key': apiKey as string,
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(payload),
     });
-    if (!res.ok) {
+
+    let res = await send(body);
+    // Fallback: if response_format unsupported in this deployment, retry without it
+    if (!res.ok && res.status === 400) {
+      const txt = await res.text().catch(() => '');
+      if (/response_format/i.test(txt)) {
+        const fallback = { ...body };
+        delete (fallback as any).response_format;
+        res = await send(fallback);
+        if (!res.ok) throw new Error(`Azure OpenAI error ${res.status}: ${txt}`);
+      } else {
+        throw new Error(`Azure OpenAI error ${res.status}: ${txt}`);
+      }
+    } else if (!res.ok) {
       const txt = await res.text().catch(() => '');
       throw new Error(`Azure OpenAI error ${res.status}: ${txt}`);
     }
+
     const data = await res.json();
-    // Responses API returns output[0].content[0].text when using json_schema
-    const text = data?.output?.[0]?.content?.[0]?.text ?? data?.output_text;
+    const text: string | undefined = data?.choices?.[0]?.message?.content;
     if (!text) throw new Error('Empty response from model');
-    try {
-      return JSON.parse(text) as T;
-    } catch (e) {
-      throw new Error('Model did not return valid JSON');
-    }
+    return tryParseJson<T>(text);
   };
 
   const retries = opts.retries ?? 1;
@@ -93,4 +110,3 @@ export function validateQuiz(quiz: any): { ok: boolean; reason?: string } {
     return { ok: false, reason: 'validation error' };
   }
 }
-

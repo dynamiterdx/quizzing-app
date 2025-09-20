@@ -5,7 +5,7 @@ A fast, no-login web app with two modes:
 - Targeted Quiz: generate and grade a focused multiple-choice quiz.
 - Help Me Prepare: adaptive prep that builds a small subtopic map, runs a diagnostic, and drills weak areas.
 
-Backed by Azure OpenAI Responses API with strict JSON Schema outputs for reliable rendering and deterministic grading.
+Backed by Azure OpenAI Chat Completions with JSON Schema response_format for reliable, structured outputs and deterministic grading.
 
 ## Setup
 
@@ -39,5 +39,4 @@ Open http://localhost:3000
 ## Tech
 
 - Next.js App Router (TypeScript)
-- Azure OpenAI Responses API with JSON Schema structured outputs
-
+- Azure OpenAI Chat Completions with JSON Schema structured outputs

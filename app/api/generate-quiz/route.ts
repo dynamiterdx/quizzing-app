@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { azureResponseJson, validateQuiz } from '@/lib/azure';
+import { azureChatJson, validateQuiz } from '@/lib/azure';
 
 const quizSchema = {
   type: 'object',
@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
   // Attempt up to 2 retries plus validation loop
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      const quiz = await azureResponseJson<any>({
+      const quiz = await azureChatJson<any>({
         system,
         user,
         jsonSchema: quizSchema as any,
@@ -70,4 +70,3 @@ export async function POST(req: NextRequest) {
   }
   return NextResponse.json({ error: 'Could not get a high-quality quiz after retries' }, { status: 502 });
 }
-

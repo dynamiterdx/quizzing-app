@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { azureResponseJson, validateQuiz } from '@/lib/azure';
+import { azureChatJson, validateQuiz } from '@/lib/azure';
 
 const diagSchema = {
   type: 'object',
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
   const user = `Topic: ${topic}. Subtopics to sample: ${Array.isArray(subtopics) ? subtopics.join(', ') : ''}. Language: ${language}. Number of questions: 6.`;
   try {
     for (let i = 0; i < 3; i++) {
-      const quiz = await azureResponseJson<any>({ system, user, jsonSchema: diagSchema as any, temperature: 0.6, retries: 1 });
+      const quiz = await azureChatJson<any>({ system, user, jsonSchema: diagSchema as any, temperature: 0.6, retries: 1 });
       const v = validateQuiz(quiz);
       if (v.ok) return NextResponse.json(quiz);
     }
@@ -54,4 +54,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: e?.message || 'Failed to generate diagnostic' }, { status: 500 });
   }
 }
-

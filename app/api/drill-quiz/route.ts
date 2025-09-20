@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { azureResponseJson, validateQuiz } from '@/lib/azure';
+import { azureChatJson, validateQuiz } from '@/lib/azure';
 
 const drillSchema = {
   type: 'object',
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
   const user = `Topic: ${topic}. Focus subtopics: ${Array.isArray(targetSubtopics) ? targetSubtopics.join(', ') : ''}. Difficulty: ${targetDifficulty}. Language: ${language}. Questions: 4.`;
   try {
     for (let i = 0; i < 3; i++) {
-      const quiz = await azureResponseJson<any>({ system, user, jsonSchema: drillSchema as any, temperature: 0.6, retries: 1 });
+      const quiz = await azureChatJson<any>({ system, user, jsonSchema: drillSchema as any, temperature: 0.6, retries: 1 });
       const v = validateQuiz(quiz);
       if (v.ok) return NextResponse.json(quiz);
     }
@@ -50,4 +50,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: e?.message || 'Failed to generate drill' }, { status: 500 });
   }
 }
-
