@@ -1,6 +1,6 @@
-# Practice Better — Minimal Next.js Quizzing App
+# Quizzaroo — Minimal Next.js Quizzing App
 
-A fast, no-login web app with two modes:
+Quizzaroo is a fast, no-login web app with two modes:
 
 - Targeted Quiz: generate and grade a focused multiple-choice quiz.
 - Help Me Prepare: adaptive prep that builds a small subtopic map, runs a diagnostic, and drills weak areas.
