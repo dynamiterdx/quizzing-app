@@ -1,8 +1,8 @@
-// File: /Users/dynamiterdx/Documents/Personal Projects/Quizzing App/app/api/generate-quiz/route.ts
-import * as entry from '../../../../../app/api/generate-quiz/route.js'
+// File: /Users/dynamiterdx/Documents/Personal Projects/Quizzing App/app/api/sample/route.ts
+import * as entry from '../../../../../app/api/sample/route.js'
 import type { NextRequest } from 'next/server.js'
 
-type TEntry = typeof import('../../../../../app/api/generate-quiz/route.js')
+type TEntry = typeof import('../../../../../app/api/sample/route.js')
 
 // Check that the entry is a valid entry
 checkFields<Diff<{

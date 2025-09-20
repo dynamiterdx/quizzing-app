@@ -28,6 +28,10 @@ npm run dev
 
 Open http://localhost:3000
 
+### Quick test
+
+Visit http://localhost:3000/sample and click "Run Sample Call" to try a schema-constrained Chat Completions request. The response includes a greeting and three short tips.
+
 ## Notes
 
 - No authentication or server-side storage; all state is session-local.

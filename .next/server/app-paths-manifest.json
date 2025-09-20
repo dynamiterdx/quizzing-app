@@ -1,5 +1,5 @@
 {
-  "/targeted/page": "app/targeted/page.js",
-  "/api/generate-quiz/route": "app/api/generate-quiz/route.js",
-  "/page": "app/page.js"
+  "/page": "app/page.js",
+  "/sample/page": "app/sample/page.js",
+  "/api/sample/route": "app/api/sample/route.js"
 }
