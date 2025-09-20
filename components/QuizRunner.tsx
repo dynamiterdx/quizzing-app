@@ -56,26 +56,7 @@ export function QuizRunner({ quiz, onPracticeMore }: { quiz: QuizSet; onPractice
         <div className="mt-2"><ProgressBar value={answeredCount} max={total} /></div>
       </div>
 
-      <div className="mt-3 row" style={{ gap: 16 }}>
-        {quiz.questions.map((q, idx) => (
-          <QuestionCard
-            key={q.id}
-            q={q}
-            index={idx}
-            total={total}
-            value={answers[q.id]}
-            onChange={(cid) => handleChange(q.id, cid)}
-            review={submitted ? { correct: answers[q.id] === q.correctChoiceId, correctChoiceId: q.correctChoiceId } : undefined}
-          />
-        ))}
-      </div>
-
-      {!submitted ? (
-        <div className="mt-3 flex">
-          <button className="btn" onClick={onSubmit} disabled={answeredCount === 0}>Submit</button>
-          <span className="muted">You can submit anytime.</span>
-        </div>
-      ) : (() => {
+      {submitted ? (() => {
         const pct = Math.round((correctCount / total) * 100);
         const tier = pct >= 80 ? 'good' : pct >= 50 ? 'ok' : 'bad';
         const emoji = pct >= 80 ? '🏆' : pct >= 50 ? '🎉' : '✨';
@@ -95,7 +76,28 @@ export function QuizRunner({ quiz, onPracticeMore }: { quiz: QuizSet; onPractice
             </div>
           </div>
         );
-      })()}
+      })() : null}
+
+      <div className="mt-3 row" style={{ gap: 16 }}>
+        {quiz.questions.map((q, idx) => (
+          <QuestionCard
+            key={q.id}
+            q={q}
+            index={idx}
+            total={total}
+            value={answers[q.id]}
+            onChange={(cid) => handleChange(q.id, cid)}
+            review={submitted ? { correct: answers[q.id] === q.correctChoiceId, correctChoiceId: q.correctChoiceId } : undefined}
+          />
+        ))}
+      </div>
+
+      {!submitted && (
+        <div className="mt-3 flex">
+          <button className="btn" onClick={onSubmit} disabled={answeredCount === 0}>Submit</button>
+          <span className="muted">You can submit anytime.</span>
+        </div>
+      )}
     </div>
   );
 }
