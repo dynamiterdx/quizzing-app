@@ -1,7 +1,6 @@
 {
-  "/sample/page": "app/sample/page.js",
-  "/api/sample/route": "app/api/sample/route.js",
-  "/page": "app/page.js",
   "/targeted/page": "app/targeted/page.js",
-  "/api/generate-quiz/route": "app/api/generate-quiz/route.js"
+  "/api/generate-quiz/route": "app/api/generate-quiz/route.js",
+  "/sample/page": "app/sample/page.js",
+  "/page": "app/page.js"
 }

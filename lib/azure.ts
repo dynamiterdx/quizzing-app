@@ -31,7 +31,7 @@ export async function azureChatJson<T>(opts: {
   const url = `${endpoint}/openai/deployments/${deployment}/chat/completions?api-version=${apiVersion}`;
   const body: any = {
     messages: [
-      { role: 'system', content: `${opts.system}\nReturn only valid JSON that strictly matches the schema.` },
+      { role: 'system', content: `${opts.system}\nReturn only valid JSON that strictly matches the schema.\nSchema: ${JSON.stringify(opts.jsonSchema)}` },
       { role: 'user', content: opts.user },
     ],
     seed: opts.seed ?? 7,
@@ -56,14 +56,18 @@ export async function azureChatJson<T>(opts: {
     });
 
     let res = await send(body);
-    // Fallback: if response_format unsupported in this deployment, retry without it
+    // Fallback: if response_format unsupported in this deployment, try json_object, then plain
     if (!res.ok && res.status === 400) {
       const txt = await res.text().catch(() => '');
       if (/response_format/i.test(txt)) {
-        const fallback = { ...body };
-        delete (fallback as any).response_format;
-        res = await send(fallback);
-        if (!res.ok) throw new Error(`Azure OpenAI error ${res.status}: ${txt}`);
+        const fallbackJsonObject: any = { ...body, response_format: { type: 'json_object' } };
+        res = await send(fallbackJsonObject);
+        if (!res.ok) {
+          const fallbackPlain = { ...body } as any;
+          delete fallbackPlain.response_format;
+          res = await send(fallbackPlain);
+          if (!res.ok) throw new Error(`Azure OpenAI error ${res.status}: ${txt}`);
+        }
       } else {
         throw new Error(`Azure OpenAI error ${res.status}: ${txt}`);
       }
