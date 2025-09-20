@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 
 const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
 const apiKey = process.env.AZURE_OPENAI_API_KEY;
-const deployment = process.env.AZURE_OPENAI_DEPLOYMENT || 'gpt-4o-mini';
+const deployment = process.env.AZURE_OPENAI_DEPLOYMENT || 'gpt-5';
 const apiVersion = process.env.AZURE_OPENAI_API_VERSION || '2024-10-21';
 
 if (!endpoint || !apiKey) {
@@ -19,7 +19,7 @@ export async function azureResponseJson<T>(opts: {
   temperature?: number;
   retries?: number;
 }): Promise<T> {
-  const url = `${endpoint}/openai/responses?api-version=${apiVersion}`;
+  const url = `${endpoint}/openai/responses/v1?api-version=${apiVersion}`;
   const body = {
     model: deployment,
     input: [
