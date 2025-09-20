@@ -1,3 +1,7 @@
 node_modules
 
 .env.local
+
+# Build artifacts and hot updates
+*.gz
+*.hot-update.js
