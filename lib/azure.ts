@@ -34,7 +34,6 @@ export async function azureChatJson<T>(opts: {
       { role: 'system', content: `${opts.system}\nReturn only valid JSON that strictly matches the schema.` },
       { role: 'user', content: opts.user },
     ],
-    temperature: opts.temperature ?? 0.6,
     seed: opts.seed ?? 7,
     response_format: {
       type: 'json_schema',
