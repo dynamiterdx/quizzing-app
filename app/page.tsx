@@ -6,10 +6,7 @@ export default function HomePage() {
       <section className="hero" aria-label="Welcome">
         <h2>Daily Practice, Real Progress</h2>
         <p>Targeted quizzes and adaptive prep. Clear, quick, effective.</p>
-        <div className="actions">
-          <Link className="btn-cta btn" href="/targeted">Play Today</Link>
-          <Link className="btn btn-outline" href="/prepare">Help Me Prepare</Link>
-        </div>
+        {/* CTA buttons removed to avoid repetition with feature cards */}
       </section>
 
       <div className="space" />
