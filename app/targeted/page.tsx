@@ -6,7 +6,7 @@ import { ErrorNotice } from '@/components/ErrorNotice';
 
 export default function TargetedPage() {
   const [topic, setTopic] = useState('');
-  const [difficulty, setDifficulty] = useState<'beginner' | 'intermediate' | 'advanced'>('beginner');
+  const [difficulty, setDifficulty] = useState<'beginner' | 'elementary' | 'intermediate' | 'advanced' | 'expert'>('beginner');
   const [numQuestions, setNumQuestions] = useState(6);
   const [timed, setTimed] = useState(false);
   const [language, setLanguage] = useState('English');
@@ -66,8 +66,10 @@ export default function TargetedPage() {
           <label htmlFor="difficulty">Difficulty</label>
           <select id="difficulty" value={difficulty} onChange={(e) => setDifficulty(e.target.value as any)}>
             <option value="beginner">Beginner</option>
+            <option value="elementary">Elementary</option>
             <option value="intermediate">Intermediate</option>
             <option value="advanced">Advanced</option>
+            <option value="expert">Expert</option>
           </select>
         </div>
         <div>
@@ -95,4 +97,3 @@ export default function TargetedPage() {
     </div>
   );
 }
-

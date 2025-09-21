@@ -27,7 +27,7 @@ const drillSchema = {
           correctChoiceId: { type: 'string' },
           explanation: { type: 'string' },
           subtopic: { type: 'string' },
-          difficulty: { type: 'string', enum: ['beginner', 'intermediate', 'advanced'] },
+          difficulty: { type: 'string', enum: ['beginner', 'elementary', 'intermediate', 'advanced', 'expert'] },
           language: { type: 'string' },
         },
       },
@@ -37,8 +37,8 @@ const drillSchema = {
 
 export async function POST(req: NextRequest) {
   const { topic, targetSubtopics, targetDifficulty, language } = await req.json();
-  const system = `You are a tutor. Create a short drill quiz focusing on the selected subtopics. Keep clarity high and explanations brief. Exactly one correct answer per question. Return only JSON.`;
-  const user = `Topic: ${topic}. Focus subtopics: ${Array.isArray(targetSubtopics) ? targetSubtopics.join(', ') : ''}. Difficulty: ${targetDifficulty}. Language: ${language}. Questions: 4.`;
+  const system = `You are a tutor. Create a short drill quiz focusing on the selected subtopics. Keep clarity high and explanations brief. Exactly one correct answer per question. Use Markdown and LaTeX where helpful in questions, choices, and explanations (math $...$ / $$...$$, code in backticks). Return only JSON.`;
+  const user = `Topic: ${topic}. Focus subtopics: ${Array.isArray(targetSubtopics) ? targetSubtopics.join(', ') : ''}. Difficulty: ${targetDifficulty} (levels: beginner, elementary, intermediate, advanced, expert). Language: ${language}. Questions: 4.`;
   try {
     for (let i = 0; i < 3; i++) {
       const quiz = await azureChatJson<any>({ system, user, jsonSchema: drillSchema as any, temperature: 0.6, retries: 1 });

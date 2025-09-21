@@ -43,7 +43,7 @@ async function main() {
     required: ['topic', 'difficulty', 'language', 'timed', 'questions'],
     properties: {
       topic: { type: 'string' },
-      difficulty: { type: 'string', enum: ['beginner', 'intermediate', 'advanced'] },
+      difficulty: { type: 'string', enum: ['beginner', 'elementary', 'intermediate', 'advanced', 'expert'] },
       language: { type: 'string' },
       timed: { type: 'boolean' },
       durationSeconds: { type: 'integer', minimum: 30 },
@@ -71,7 +71,7 @@ async function main() {
             correctChoiceId: { type: 'string' },
             explanation: { type: 'string' },
             subtopic: { type: 'string' },
-            difficulty: { type: 'string', enum: ['beginner', 'intermediate', 'advanced'] },
+            difficulty: { type: 'string', enum: ['beginner', 'elementary', 'intermediate', 'advanced', 'expert'] },
             language: { type: 'string' },
           },
         },
@@ -79,15 +79,15 @@ async function main() {
     },
   };
 
-  const system = 'You are a helpful quiz generator. Create clear multiple-choice questions with exactly one correct answer, age-appropriate, no tricks, no duplicates. Keep explanations brief and helpful. Return only JSON using the provided schema.';
+  const system = 'You are a helpful quiz generator. Create clear multiple-choice questions with exactly one correct answer, age-appropriate, no tricks, no duplicates. Use Markdown and LaTeX where helpful in questions, choices, and explanations. Keep explanations brief and helpful. Return only JSON using the provided schema.';
   const settings = { topic: 'Photosynthesis Basics', difficulty: 'beginner', numQuestions: 5, timed: false, language: 'English' };
   const user = `Generate a focused quiz on topic: "${settings.topic}". Difficulty: ${settings.difficulty}. Language: ${settings.language}. Number of questions: ${settings.numQuestions}. Timed: ${settings.timed ? 'yes' : 'no'}. Ensure one unambiguous correct option per question.`;
 
   const url = `${endpoint}/openai/deployments/${deployment}/chat/completions?api-version=${apiVersion}`;
   const body = {
     messages: [
-      { role: 'system', content: `${system}\nReturn only valid JSON that strictly matches the schema.\nSchema: ${JSON.stringify(quizSchema)}` },
-      { role: 'user', content: user },
+      { role: 'system', content: `${system}\nReturn only valid JSON that strictly matches the schema. Use Markdown and LaTeX where helpful.\nSchema: ${JSON.stringify(quizSchema)}` },
+      { role: 'user', content: `${user} Difficulty levels available: beginner, elementary, intermediate, advanced, expert.` },
     ],
     // No temperature for gpt-5 compatibility
     seed: 7,

@@ -16,7 +16,7 @@ export default function PreparePage() {
   const [diagnosticQuiz, setDiagnosticQuiz] = useState<QuizSet | null>(null);
   const [weakSubtopics, setWeakSubtopics] = useState<string[]>([]);
   const [scores, setScores] = useState<Record<string, { initial: number; latest: number }>>({});
-  const [drillDifficulty, setDrillDifficulty] = useState<'beginner' | 'intermediate' | 'advanced'>('beginner');
+  const [drillDifficulty, setDrillDifficulty] = useState<'beginner' | 'elementary' | 'intermediate' | 'advanced' | 'expert'>('beginner');
   const [drillQuiz, setDrillQuiz] = useState<QuizSet | null>(null);
 
   const buildMap = useCallback(async () => {
@@ -83,9 +83,9 @@ export default function PreparePage() {
       });
       return copy;
     });
-    // Simple difficulty adapt: increase if >= 75
-    if (correctPct >= 75 && drillDifficulty !== 'advanced') {
-      setDrillDifficulty(drillDifficulty === 'beginner' ? 'intermediate' : 'advanced');
+    // Simple difficulty adapt: increase if >= 75 (scale across 5 levels)
+    if (correctPct >= 75) {
+      setDrillDifficulty((d) => (d === 'beginner' ? 'elementary' : d === 'elementary' ? 'intermediate' : d === 'intermediate' ? 'advanced' : d === 'advanced' ? 'expert' : 'expert'));
     }
   }, [weakSubtopics, drillDifficulty]);
 
@@ -156,8 +156,10 @@ export default function PreparePage() {
               <label htmlFor="dif">Difficulty</label>
               <select id="dif" value={drillDifficulty} onChange={(e) => setDrillDifficulty(e.target.value as any)}>
                 <option value="beginner">Beginner</option>
+                <option value="elementary">Elementary</option>
                 <option value="intermediate">Intermediate</option>
                 <option value="advanced">Advanced</option>
+                <option value="expert">Expert</option>
               </select>
             </div>
             <div className="mt-2">
@@ -200,4 +202,3 @@ export default function PreparePage() {
     </div>
   );
 }
-

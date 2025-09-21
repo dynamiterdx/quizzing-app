@@ -1,4 +1,4 @@
-export type Difficulty = 'beginner' | 'intermediate' | 'advanced';
+export type Difficulty = 'beginner' | 'elementary' | 'intermediate' | 'advanced' | 'expert';
 
 export interface QuizQuestion {
   id: string;
@@ -42,4 +42,3 @@ export interface PrepSummary {
   scores: SubtopicScore[];
   pointers: { subtopic: string; tip: string }[];
 }
-

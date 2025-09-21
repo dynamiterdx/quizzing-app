@@ -7,7 +7,7 @@ const quizSchema = {
   required: ['topic', 'difficulty', 'language', 'timed', 'questions'],
   properties: {
     topic: { type: 'string' },
-    difficulty: { type: 'string', enum: ['beginner', 'intermediate', 'advanced'] },
+    difficulty: { type: 'string', enum: ['beginner', 'elementary', 'intermediate', 'advanced', 'expert'] },
     language: { type: 'string' },
     timed: { type: 'boolean' },
     durationSeconds: { type: 'integer', minimum: 30 },
@@ -38,7 +38,7 @@ const quizSchema = {
           correctChoiceId: { type: 'string' },
           explanation: { type: 'string' },
           subtopic: { type: 'string' },
-          difficulty: { type: 'string', enum: ['beginner', 'intermediate', 'advanced'] },
+          difficulty: { type: 'string', enum: ['beginner', 'elementary', 'intermediate', 'advanced', 'expert'] },
           language: { type: 'string' },
         },
       },
@@ -49,8 +49,8 @@ const quizSchema = {
 export async function POST(req: NextRequest) {
   const { topic, difficulty, numQuestions, timed, language } = await req.json();
 
-  const system = `You are a helpful quiz generator. Create clear multiple-choice questions with exactly one correct answer, age-appropriate, no tricks, no duplicates. Keep explanations brief and helpful. Return only JSON using the provided schema.`;
-  const user = `Generate a focused quiz on topic: "${topic}". Difficulty: ${difficulty}. Language: ${language}. Number of questions: ${numQuestions}. Timed: ${timed ? 'yes' : 'no'}. Ensure one unambiguous correct option per question.`;
+  const system = `You are a helpful quiz generator. Create clear multiple-choice questions with exactly one correct answer, age-appropriate, no tricks, no duplicates. Use Markdown and LaTeX where helpful in questions, choices, and explanations (e.g., math with $...$ / $$...$$, code/SQL in backticks). Keep explanations brief. Return only JSON using the provided schema.`;
+  const user = `Generate a focused quiz on topic: "${topic}". Difficulty: ${difficulty} (levels: beginner, elementary, intermediate, advanced, expert). Language: ${language}. Number of questions: ${numQuestions}. Timed: ${timed ? 'yes' : 'no'}. Ensure one unambiguous correct option per question. Use Markdown/LaTeX where appropriate.`;
 
   // Attempt up to 2 retries plus validation loop
   for (let attempt = 0; attempt < 3; attempt++) {

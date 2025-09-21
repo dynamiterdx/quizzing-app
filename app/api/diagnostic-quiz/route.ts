@@ -31,7 +31,7 @@ const diagSchema = {
           correctChoiceId: { type: 'string' },
           explanation: { type: 'string' },
           subtopic: { type: 'string' },
-          difficulty: { type: 'string', enum: ['beginner', 'intermediate', 'advanced'] },
+          difficulty: { type: 'string', enum: ['beginner', 'elementary', 'intermediate', 'advanced', 'expert'] },
           language: { type: 'string' },
         },
       },
@@ -41,8 +41,8 @@ const diagSchema = {
 
 export async function POST(req: NextRequest) {
   const { topic, subtopics, language } = await req.json();
-  const system = `You are a tutor. Create a short diagnostic multiple-choice quiz sampling across given subtopics. Exactly one correct answer per question. Keep questions clear and explanations brief. Return only JSON.`;
-  const user = `Topic: ${topic}. Subtopics to sample: ${Array.isArray(subtopics) ? subtopics.join(', ') : ''}. Language: ${language}. Number of questions: 6.`;
+  const system = `You are a tutor. Create a short diagnostic multiple-choice quiz sampling across given subtopics. Exactly one correct answer per question. Use Markdown and LaTeX where useful for clarity in questions, choices, and explanations (formulas $...$ / $$...$$, code in backticks). Keep questions clear and explanations brief. Return only JSON.`;
+  const user = `Topic: ${topic}. Subtopics to sample: ${Array.isArray(subtopics) ? subtopics.join(', ') : ''}. Language: ${language}. Number of questions: 6. Difficulty levels available: beginner, elementary, intermediate, advanced, expert.`;
   try {
     for (let i = 0; i < 3; i++) {
       const quiz = await azureChatJson<any>({ system, user, jsonSchema: diagSchema as any, temperature: 0.6, retries: 1 });

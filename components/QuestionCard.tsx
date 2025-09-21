@@ -54,7 +54,7 @@ export function QuestionCard({
       {review && (
         <div className="mt-2">
           <div className="muted">Explanation:</div>
-          <div>{q.explanation}</div>
+          <div className="mt-1"><MarkdownText text={q.explanation} /></div>
         </div>
       )}
     </div>
