@@ -1,5 +1,6 @@
 "use client";
 import { QuizQuestion } from '@/types/quiz';
+import { MarkdownText } from './MarkdownText';
 
 export function QuestionCard({
   q,
@@ -22,7 +23,7 @@ export function QuestionCard({
         <div className="pill">Q {index + 1} of {total}</div>
         {q.subtopic && <div className="pill">{q.subtopic}</div>}
       </div>
-      <h3 className="mt-2" id={`q-${q.id}`}>{q.question}</h3>
+      <h3 className="mt-2" id={`q-${q.id}`}><MarkdownText text={q.question} /></h3>
       <div className="answers mt-2" role="radiogroup" aria-labelledby={`q-${q.id}`}>
         {q.choices.map((c) => {
           const checked = value === c.id;
@@ -45,7 +46,7 @@ export function QuestionCard({
               />
               {review && isCorrect && <span className="ans-icon correct" aria-hidden>✓</span>}
               {review && isWrongSelected && <span className="ans-icon wrong" aria-hidden>✕</span>}
-              <span className="ans-text">{c.text}</span>
+              <span className="ans-text"><MarkdownText text={c.text} /></span>
             </label>
           );
         })}
