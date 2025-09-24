@@ -3,6 +3,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { QuizSet, QuizQuestion } from '@/types/quiz';
 import { QuizRunner } from '@/components/QuizRunner';
 import { ErrorNotice } from '@/components/ErrorNotice';
+import { LoadingQuiz } from '@/components/LoadingQuiz';
 
 export default function TargetedPage() {
   const [topic, setTopic] = useState('');
@@ -93,7 +94,8 @@ export default function TargetedPage() {
         <div className="mt-3"><ErrorNotice message={error} retry={generateQuiz} /></div>
       )}
 
-      {quiz && <QuizRunner quiz={quiz} onPracticeMore={practiceMore} />}
+      {loading && <LoadingQuiz />}
+      {quiz && !loading && <QuizRunner quiz={quiz} onPracticeMore={practiceMore} />}
     </div>
   );
 }

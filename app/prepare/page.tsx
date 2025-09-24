@@ -3,6 +3,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { ErrorNotice } from '@/components/ErrorNotice';
 import { QuizRunner } from '@/components/QuizRunner';
 import { QuizSet, SubtopicNode, SubtopicScore, PrepSummary } from '@/types/quiz';
+import { LoadingQuiz } from '@/components/LoadingQuiz';
 
 type Step = 'map' | 'diagnostic' | 'select' | 'drill' | 'summary';
 
@@ -124,7 +125,9 @@ export default function PreparePage() {
 
       {error && <div className="mt-3"><ErrorNotice message={error} retry={step === 'map' ? buildMap : undefined} /></div>}
 
-      {step === 'diagnostic' && diagnosticQuiz && (
+      {loading && <LoadingQuiz label="Preparing your plan…" />}
+
+      {step === 'diagnostic' && diagnosticQuiz && !loading && (
         <div className="mt-3">
           <h3>Diagnostic</h3>
           <p className="muted">Answer a few to estimate proficiency across subtopics.</p>
@@ -169,7 +172,7 @@ export default function PreparePage() {
         </div>
       )}
 
-      {step === 'drill' && drillQuiz && (
+      {step === 'drill' && drillQuiz && !loading && (
         <div className="mt-3">
           <h3>Drill</h3>
           <QuizRunner

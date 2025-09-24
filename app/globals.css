@@ -134,3 +134,16 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px
 .score-banner.good { background: linear-gradient(135deg, #a7f3d0, #86efac); border: 1px solid #86efac; }
 .score-banner.ok { background: linear-gradient(135deg, #e9d5ff, #c4b5fd); border: 1px solid #c4b5fd; }
 .score-banner.bad { background: linear-gradient(135deg, #fee2e2, #fecaca); border: 1px solid #fecaca; }
+
+/* Loader / shimmer */
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.shimmer { background: linear-gradient(90deg, #f0ecff 0%, #ffffff 20%, #f0ecff 40%); background-size: 400px 100%; animation: shimmer 1.2s infinite linear; border-radius: 12px; height: 16px; }
+.loader-wrap { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: center; }
+.loader-spinner { width: 32px; height: 32px; border-radius: 50%; border: 3px solid #e6ddff; border-top-color: var(--primary); animation: spin 0.9s linear infinite; }
+.loader-title { height: 18px; }
+.loader-sub { height: 12px; border-radius: 8px; }
+.loader-option { height: 54px; border-radius: 12px; margin-top: 10px; }
