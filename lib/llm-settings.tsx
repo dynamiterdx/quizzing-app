@@ -5,6 +5,7 @@ import { ModelProvider } from '@/types/quiz';
 export interface LLMSettings {
   provider: ModelProvider;
   perplexityKey?: string;
+  azureKey?: string;
   hasChosen: boolean;
 }
 
@@ -54,7 +55,7 @@ export function LLMSettingsProvider({ children }: { children: React.ReactNode })
 
   const isConfigured = useMemo(() => {
     if (!settings.hasChosen) return false;
-    if (settings.provider === 'azure') return true;
+    if (settings.provider === 'azure') return Boolean(settings.azureKey);
     return Boolean(settings.perplexityKey);
   }, [settings]);
 

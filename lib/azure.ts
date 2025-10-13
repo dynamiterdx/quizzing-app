@@ -1,10 +1,13 @@
 const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
-const apiKey = process.env.AZURE_OPENAI_API_KEY;
+const envApiKey = process.env.AZURE_OPENAI_API_KEY;
 const deployment = process.env.AZURE_OPENAI_DEPLOYMENT || 'gpt-4o-mini';
 const apiVersion = process.env.AZURE_OPENAI_API_VERSION || '2024-10-21';
 
-if (!endpoint || !apiKey) {
-  console.warn('[AzureOpenAI] Missing endpoint or api key. Set AZURE_OPENAI_ENDPOINT and AZURE_OPENAI_API_KEY');
+if (!endpoint) {
+  console.warn('[AzureOpenAI] Missing endpoint. Set AZURE_OPENAI_ENDPOINT');
+}
+if (!envApiKey) {
+  console.warn('[AzureOpenAI] No AZURE_OPENAI_API_KEY in environment; falling back to runtime-provided key.');
 }
 
 type Schema = Record<string, unknown>;
@@ -27,6 +30,7 @@ export async function azureChatJson<T>(opts: {
   seed?: number;
   temperature?: number;
   retries?: number;
+  apiKey?: string;
 }): Promise<T> {
   const url = `${endpoint}/openai/deployments/${deployment}/chat/completions?api-version=${apiVersion}`;
   const body: any = {
@@ -45,12 +49,15 @@ export async function azureChatJson<T>(opts: {
     },
   };
 
+  const keyToUse = opts.apiKey || envApiKey;
+  if (!keyToUse) throw new Error('Azure OpenAI API key not configured');
+
   const doCall = async (): Promise<T> => {
     const send = async (payload: any) => fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'api-key': apiKey as string,
+        'api-key': keyToUse,
       },
       body: JSON.stringify(payload),
     });

@@ -50,7 +50,7 @@ Both modes work in English by default, and you can request questions in other la
 ### How to Start Practicing
 1. **Open the app** (local URL is usually http://localhost:3000 during testing; deployed URL depends on your host).
 2. **Pick a mode** from the home page cards.
-   - First visit? You’ll be redirected to the **LLM Settings** page to choose Azure or Perplexity (Sonar / Sonar Pro) and, if needed, paste your API key. You can revisit this screen anytime via the header link.
+   - First visit? You’ll be redirected to the **LLM Settings** page to choose Azure or Perplexity (Sonar / Sonar Pro) and paste the required API key. Azure OpenAI now also asks for its API key in this screen (endpoints/deployments still come from the server environment). You can revisit this screen anytime via the header link.
 3. **Fill in the small form**: topic, difficulty, number of questions, optional timer or language.
 4. **Hit generate** and answer at your own pace. Keyboard navigation works everywhere.
 5. **Review explanations** to learn why each answer is right, then drill any gaps.
@@ -163,7 +163,7 @@ Notes:
 - Endpoint format must include the protocol and resource host.
 - Deployment name should match the model slot defined in Azure (defaults to `gpt-4o-mini` if omitted).
 - `AZURE_OPENAI_API_VERSION` defaults to `2024-10-21`, but you can pin it to the version that matches your deployment.
-- The helper logs a warning if endpoint or key are missing, making local debugging friendlier. Perplexity support requires `PERPLEXITY_API_KEY`; without it the dropdown will still show Azure but calls to Sonar/Sonar Pro will return errors.
+- The helper logs a warning if endpoint or key are missing, making local debugging friendlier. Azure API keys are now supplied through the in-app LLM Settings screen (the environment variable acts as a fallback only). Perplexity support requires either the environment key or the one you paste into the settings screen.
 
 ### CLI Script & Sample Endpoint
 - **`scripts/sample-quiz.mjs`**: Node CLI that loads `.env.local`, calls Azure Chat Completions with the same schema used in the app, and prints a quiz JSON payload. Helpful for debugging prompts or running smoke checks from a shell.

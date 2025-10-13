@@ -27,6 +27,7 @@ export default function TargetedPage() {
 
   const provider = settings.provider;
   const perplexityKey = settings.perplexityKey;
+  const azureKey = settings.azureKey;
 
   const canGenerate = topic.trim().length > 2 && numQuestions >= 3 && numQuestions <= 15 && isConfigured;
 
@@ -36,7 +37,7 @@ export default function TargetedPage() {
       const res = await fetch('/api/generate-quiz', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic, difficulty, numQuestions, timed, language, provider, perplexityKey }),
+        body: JSON.stringify({ topic, difficulty, numQuestions, timed, language, provider, perplexityKey, azureKey }),
       });
       if (!res.ok) throw new Error(await res.text());
       const q = await res.json();
@@ -46,7 +47,7 @@ export default function TargetedPage() {
       const msg = e?.message || 'Failed to generate quiz. Please retry.';
       setError(msg.includes('429') ? 'Rate limited. Please wait a few seconds and try again.' : 'Error generating quiz. Please retry.');
     } finally { setLoading(false); }
-  }, [topic, difficulty, numQuestions, timed, language, provider, perplexityKey]);
+  }, [topic, difficulty, numQuestions, timed, language, provider, perplexityKey, azureKey]);
 
   const practiceMore = useCallback(async (missed: QuizQuestion[]) => {
     if (!missed.length) return;
@@ -55,7 +56,7 @@ export default function TargetedPage() {
       const missedSubtopics = Array.from(new Set(missed.map((m) => m.subtopic).filter(Boolean))) as string[];
       const res = await fetch('/api/drill-quiz', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic, targetSubtopics: missedSubtopics, targetDifficulty: difficulty, language, provider, perplexityKey }),
+        body: JSON.stringify({ topic, targetSubtopics: missedSubtopics, targetDifficulty: difficulty, language, provider, perplexityKey, azureKey }),
       });
       if (!res.ok) throw new Error(await res.text());
       const q = await res.json();
@@ -64,7 +65,7 @@ export default function TargetedPage() {
     } catch (e: any) {
       setError('Could not generate follow-up questions. Please retry.');
     } finally { setLoading(false); }
-  }, [topic, difficulty, language, timed, provider, perplexityKey]);
+  }, [topic, difficulty, language, timed, provider, perplexityKey, azureKey]);
 
   return (
     <div className="card">

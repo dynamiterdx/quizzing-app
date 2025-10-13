@@ -38,14 +38,14 @@ const drillSchema = {
 } as const;
 
 export async function POST(req: NextRequest) {
-  const { topic, targetSubtopics, targetDifficulty, language, provider, perplexityKey }: { topic: string; targetSubtopics: string[]; targetDifficulty: string; language: string; provider?: ModelProvider; perplexityKey?: string } = await req.json();
+  const { topic, targetSubtopics, targetDifficulty, language, provider, perplexityKey, azureKey }: { topic: string; targetSubtopics: string[]; targetDifficulty: string; language: string; provider?: ModelProvider; perplexityKey?: string; azureKey?: string } = await req.json();
   const modelProvider: ModelProvider = provider === 'perplexity' || provider === 'perplexity-pro' ? provider : 'azure';
   const system = `You are a tutor. Create a short drill quiz focusing on the selected subtopics. Keep clarity high and explanations brief. Exactly one correct answer per question. Use Markdown and LaTeX where helpful in questions, choices, and explanations (math $...$ / $$...$$, code in backticks). Return only JSON.`;
   const user = `Topic: ${topic}. Focus subtopics: ${Array.isArray(targetSubtopics) ? targetSubtopics.join(', ') : ''}. Difficulty: ${targetDifficulty} (levels: beginner, elementary, intermediate, advanced, expert). Language: ${language}. Questions: 4.`;
   try {
     for (let i = 0; i < 3; i++) {
       const quiz = await (modelProvider === 'azure'
-        ? azureChatJson<any>({ system, user, jsonSchema: drillSchema as any, retries: 1 })
+        ? azureChatJson<any>({ system, user, jsonSchema: drillSchema as any, retries: 1, apiKey: azureKey })
         : perplexityChatJson<any>({ system, user, jsonSchema: drillSchema as any, retries: 1, model: modelProvider === 'perplexity-pro' ? 'sonar-pro' : 'sonar', apiKey: perplexityKey })
       );
       const v = validateQuiz(quiz);

@@ -42,14 +42,14 @@ const diagSchema = {
 } as const;
 
 export async function POST(req: NextRequest) {
-  const { topic, subtopics, language, provider, perplexityKey }: { topic: string; subtopics: string[]; language: string; provider?: ModelProvider; perplexityKey?: string } = await req.json();
+  const { topic, subtopics, language, provider, perplexityKey, azureKey }: { topic: string; subtopics: string[]; language: string; provider?: ModelProvider; perplexityKey?: string; azureKey?: string } = await req.json();
   const modelProvider: ModelProvider = provider === 'perplexity' || provider === 'perplexity-pro' ? provider : 'azure';
   const system = `You are a tutor. Create a short diagnostic multiple-choice quiz sampling across given subtopics. Exactly one correct answer per question. Use Markdown and LaTeX where useful for clarity in questions, choices, and explanations (formulas $...$ / $$...$$, code in backticks). Keep questions clear and explanations brief. Return only JSON.`;
   const user = `Topic: ${topic}. Subtopics to sample: ${Array.isArray(subtopics) ? subtopics.join(', ') : ''}. Language: ${language}. Number of questions: 6. Difficulty levels available: beginner, elementary, intermediate, advanced, expert.`;
   try {
     for (let i = 0; i < 3; i++) {
       const quiz = await (modelProvider === 'azure'
-        ? azureChatJson<any>({ system, user, jsonSchema: diagSchema as any, retries: 1 })
+        ? azureChatJson<any>({ system, user, jsonSchema: diagSchema as any, retries: 1, apiKey: azureKey })
         : perplexityChatJson<any>({ system, user, jsonSchema: diagSchema as any, retries: 1, model: modelProvider === 'perplexity-pro' ? 'sonar-pro' : 'sonar', apiKey: perplexityKey })
       );
       const v = validateQuiz(quiz);

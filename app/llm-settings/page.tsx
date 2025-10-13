@@ -16,25 +16,36 @@ export default function LLMSettingsPage() {
   const { settings, setSettings } = useLLMSettings();
   const [provider, setProvider] = useState<ModelProvider>(settings.provider);
   const [perplexityKey, setPerplexityKey] = useState(settings.perplexityKey ?? '');
+  const [azureKey, setAzureKey] = useState(settings.azureKey ?? '');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setProvider(settings.provider);
     setPerplexityKey(settings.perplexityKey ?? '');
+    setAzureKey(settings.azureKey ?? '');
   }, [settings]);
 
-  const needsKey = provider === 'perplexity' || provider === 'perplexity-pro';
+  const needsPerplexityKey = provider === 'perplexity' || provider === 'perplexity-pro';
+  const needsAzureKey = provider === 'azure';
 
   const next = params.get('next') || '/';
 
   const onSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (needsKey && !perplexityKey.trim()) {
+    if (needsPerplexityKey && !perplexityKey.trim()) {
       setError('Perplexity API key is required for the selected model.');
       return;
     }
+    if (needsAzureKey && !azureKey.trim()) {
+      setError('Azure OpenAI API key is required.');
+      return;
+    }
     setError(null);
-    setSettings({ provider, perplexityKey: needsKey ? perplexityKey.trim() : undefined });
+    setSettings({
+      provider,
+      perplexityKey: needsPerplexityKey ? perplexityKey.trim() : settings.perplexityKey,
+      azureKey: needsAzureKey ? azureKey.trim() : settings.azureKey,
+    });
     router.push(next);
   };
 
@@ -64,13 +75,29 @@ export default function LLMSettingsPage() {
           </div>
         </fieldset>
 
-        {needsKey && (
+        {needsAzureKey && (
+          <div className="mt-3">
+            <label htmlFor="azureKey">Azure OpenAI API Key</label>
+            <input
+              id="azureKey"
+              type="password"
+              placeholder="Azure api-key"
+              value={azureKey}
+              onChange={(e) => setAzureKey(e.target.value)}
+            />
+            <p className="muted" style={{ fontSize: '0.85rem', marginTop: 6 }}>
+              Used for calls to your Azure OpenAI deployment. Stored in session storage only.
+            </p>
+          </div>
+        )}
+
+        {needsPerplexityKey && (
           <div className="mt-3">
             <label htmlFor="perplexityKey">Perplexity API Key</label>
             <input
               id="perplexityKey"
               type="password"
-              placeholder="sk-..."
+              placeholder="pplx-..."
               value={perplexityKey}
               onChange={(e) => setPerplexityKey(e.target.value)}
             />
@@ -90,4 +117,3 @@ export default function LLMSettingsPage() {
     </div>
   );
 }
-

@@ -30,18 +30,19 @@ export default function PreparePage() {
 
   const provider = settings.provider;
   const perplexityKey = settings.perplexityKey;
+  const azureKey = settings.azureKey;
 
   const buildMap = useCallback(async () => {
     setLoading(true); setError(null); setMap(null);
     try {
-      const res = await fetch('/api/subtopic-map', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topic, language, provider, perplexityKey }) });
+      const res = await fetch('/api/subtopic-map', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topic, language, provider, perplexityKey, azureKey }) });
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
       setMap(data.subtopics);
       setStep('diagnostic');
       // generate diagnostic quiz sampling map top-level subtopics
       const sample = (data.subtopics || []).slice(0, 6).map((s: any) => s.name);
-      const dres = await fetch('/api/diagnostic-quiz', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topic, subtopics: sample, language, provider, perplexityKey }) });
+      const dres = await fetch('/api/diagnostic-quiz', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topic, subtopics: sample, language, provider, perplexityKey, azureKey }) });
       if (!dres.ok) throw new Error(await dres.text());
       const dq = await dres.json();
       setDiagnosticQuiz({ topic, difficulty: 'beginner', language, timed: false, questions: dq.questions });
@@ -49,7 +50,7 @@ export default function PreparePage() {
       setError('Failed to build subtopic map or diagnostic. Please retry.');
       setStep('map');
     } finally { setLoading(false); }
-  }, [topic, language, provider, perplexityKey]);
+  }, [topic, language, provider, perplexityKey, azureKey]);
 
   const onDiagnosticDone = useCallback((missed: any[], quiz: QuizSet) => {
     // Compute per-subtopic correctness
@@ -75,7 +76,7 @@ export default function PreparePage() {
   const startDrill = useCallback(async () => {
     setLoading(true); setError(null);
     try {
-      const res = await fetch('/api/drill-quiz', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topic, targetSubtopics: weakSubtopics, targetDifficulty: drillDifficulty, language, provider, perplexityKey }) });
+      const res = await fetch('/api/drill-quiz', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topic, targetSubtopics: weakSubtopics, targetDifficulty: drillDifficulty, language, provider, perplexityKey, azureKey }) });
       if (!res.ok) throw new Error(await res.text());
       const dq = await res.json();
       setDrillQuiz({ topic, difficulty: drillDifficulty, language, timed: false, questions: dq.questions });
@@ -83,7 +84,7 @@ export default function PreparePage() {
     } catch (e: any) {
       setError('Failed to start drill. Please retry.');
     } finally { setLoading(false); }
-  }, [topic, weakSubtopics, drillDifficulty, language, provider, perplexityKey]);
+  }, [topic, weakSubtopics, drillDifficulty, language, provider, perplexityKey, azureKey]);
 
   const updateScoresAfterDrill = useCallback((correctPct: number) => {
     setScores((s) => {
