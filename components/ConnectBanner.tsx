@@ -68,6 +68,9 @@ export default function ConnectBanner({ children }: { children?: ReactNode }) {
             <span aria-hidden>|</span>
             <a href="#">Privacy Policy</a>
           </div>
+          <a className="connect-maker" href="https://archit-mishra.vercel.app/" target="_blank" rel="noreferrer">
+            Meet the maker →
+          </a>
         </div>
       </div>
     </section>
