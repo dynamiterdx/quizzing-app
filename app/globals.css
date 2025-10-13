@@ -26,6 +26,7 @@ body {
 }
 .container { max-width: 1040px; margin: 0 auto; padding: 16px; }
 .site-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; }
+.logo-link { display: flex; align-items: center; gap: 8px; text-decoration: none; }
 .brand { font-size: 1.2rem; letter-spacing: 0.2px; background: linear-gradient(90deg, var(--primary), #a78bfa); -webkit-background-clip: text; background-clip: text; color: transparent; font-weight: 800; }
 .site-footer { color: var(--muted); font-size: 0.85rem; padding: 24px 0; text-align: center; }
 

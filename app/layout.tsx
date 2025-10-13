@@ -1,6 +1,8 @@
 import './globals.css';
 import 'katex/dist/katex.min.css';
 import type { Metadata } from 'next';
+import Image from 'next/image';
+import Link from 'next/link';
 import { LLMSettingsProvider } from '@/lib/llm-settings';
 
 export const metadata: Metadata = {
@@ -15,7 +17,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <LLMSettingsProvider>
           <div className="container">
             <header className="site-header">
-              <h1 className="brand">Quizzaroo</h1>
+              <Link href="/" className="logo-link" aria-label="Quizzaroo home">
+                <Image src="/logo.png" alt="Quizzaroo" width={40} height={40} priority />
+                <span className="brand">Quizzaroo</span>
+              </Link>
               <a className="btn btn-outline" href="/llm-settings">LLM settings</a>
             </header>
             <main>{children}</main>

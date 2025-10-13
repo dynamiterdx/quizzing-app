@@ -50,7 +50,7 @@ Both modes work in English by default, and you can request questions in other la
 ### How to Start Practicing
 1. **Open the app** (local URL is usually http://localhost:3000 during testing; deployed URL depends on your host).
 2. **Pick a mode** from the home page cards.
-   - First visit? You’ll be redirected to the **LLM Settings** page to choose Azure or Perplexity (Sonar / Sonar Pro) and paste the required API key. Azure OpenAI now also asks for its API key in this screen (endpoints/deployments still come from the server environment). You can revisit this screen anytime via the header link.
+   - First visit? You’ll be redirected to the **LLM Settings** page to choose Azure or Perplexity (Sonar / Sonar Pro) and paste the required API key. Azure OpenAI now also asks for its API key in this screen (endpoints/deployments still come from the server environment). Use the “Use environment key” button if you’ve already set the key in `.env.local`; you can revisit this screen anytime via the header link.
 3. **Fill in the small form**: topic, difficulty, number of questions, optional timer or language.
 4. **Hit generate** and answer at your own pace. Keyboard navigation works everywhere.
 5. **Review explanations** to learn why each answer is right, then drill any gaps.
