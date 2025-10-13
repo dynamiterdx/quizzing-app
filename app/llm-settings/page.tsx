@@ -18,6 +18,45 @@ export default function LLMSettingsPage() {
   const [perplexityKey, setPerplexityKey] = useState(settings.perplexityKey ?? '');
   const [azureKey, setAzureKey] = useState(settings.azureKey ?? '');
   const [error, setError] = useState<string | null>(null);
+  const [envLoading, setEnvLoading] = useState(false);
+
+  const [envKeys, setEnvKeys] = useState<{ azureKey?: string | null; perplexityKey?: string | null } | null>(null);
+
+  const fetchEnvKeys = async () => {
+    try {
+      setEnvLoading(true);
+      const res = await fetch('/api/llm-env');
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      setEnvKeys({ azureKey: data.azureKey, perplexityKey: data.perplexityKey });
+      return data;
+    } catch (e: any) {
+      setError(e?.message || 'Failed to read environment keys.');
+      return null;
+    } finally {
+      setEnvLoading(false);
+    }
+  };
+
+  const applyEnvKey = async (type: 'azure' | 'perplexity') => {
+    const keys = envKeys || (await fetchEnvKeys());
+    if (!keys) return;
+    if (type === 'azure') {
+      if (keys.azureKey) {
+        setAzureKey(keys.azureKey);
+        setError(null);
+      } else {
+        setError('No Azure API key found in environment.');
+      }
+    } else {
+      if (keys.perplexityKey) {
+        setPerplexityKey(keys.perplexityKey);
+        setError(null);
+      } else {
+        setError('No Perplexity API key found in environment.');
+      }
+    }
+  };
 
   useEffect(() => {
     setProvider(settings.provider);
@@ -85,6 +124,9 @@ export default function LLMSettingsPage() {
               value={azureKey}
               onChange={(e) => setAzureKey(e.target.value)}
             />
+            <div className="mt-1 flex">
+              <button type="button" className="btn btn-outline" onClick={() => applyEnvKey('azure')} disabled={envLoading}>Use environment key</button>
+            </div>
             <p className="muted" style={{ fontSize: '0.85rem', marginTop: 6 }}>
               Used for calls to your Azure OpenAI deployment. Stored in session storage only.
             </p>
@@ -101,6 +143,9 @@ export default function LLMSettingsPage() {
               value={perplexityKey}
               onChange={(e) => setPerplexityKey(e.target.value)}
             />
+            <div className="mt-1 flex">
+              <button type="button" className="btn btn-outline" onClick={() => applyEnvKey('perplexity')} disabled={envLoading}>Use environment key</button>
+            </div>
             <p className="muted" style={{ fontSize: '0.85rem', marginTop: 6 }}>
               Key is stored in session storage only and sent to the server for each request.
             </p>
