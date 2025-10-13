@@ -77,7 +77,7 @@ Both modes work in English by default, and you can request questions in other la
 - **Framework**: Next.js 14 App Router with TypeScript (`app/` directory).
 - **UI**: React 18, client components for interactive quiz flow, custom CSS (`app/globals.css`) styled for accessibility.
 - **Markdown & Math**: `react-markdown`, `remark-gfm`, `remark-math`, `rehype-katex`, plus `katex` styles in the global layout.
-- **LLM Provider**: Azure OpenAI Chat Completions (JSON Schema response_format).
+- **LLM Providers**: Azure OpenAI Chat Completions (JSON Schema response_format) and Perplexity Sonar/Sonar Pro (prompted JSON with strict parsing).
 - **Tooling**: ESLint (`npm run lint`), TypeScript strict mode, optional CLI script (`scripts/sample-quiz.mjs`).
 
 ### Architecture Walkthrough
@@ -87,20 +87,20 @@ Both modes work in English by default, and you can request questions in other la
 - `app/prepare/page.tsx`: multi-step adaptive prep workflow.
 - `app/sample/page.tsx`: simple UI to exercise the sample API endpoint.
 - `components/`: reusable UI pieces (`QuizRunner`, `QuestionCard`, `ProgressBar`, `Timer`, markdown renderer, loading skeletons, and error notice).
-- `app/api/*/route.ts`: serverless endpoints that orchestrate Azure OpenAI calls with strict JSON schemas for quiz data.
+- `app/api/*/route.ts`: serverless endpoints that orchestrate Azure OpenAI or Perplexity calls with strict JSON schemas for quiz data.
 - `lib/azure.ts`: shared Azure helper that enforces schema-constrained responses, retries with fallbacks, and validates quizzes.
 - `types/quiz.ts`: shared TypeScript contracts for quizzes, subtopics, and adaptive prep metadata.
 
 ### Data Flow by Mode
 **Targeted Quiz**
-1. Client posts to `/api/generate-quiz` with topic, difficulty, quantity, timed flag, and language.
-2. Route builds a JSON schema describing the quiz payload, calls `azureChatJson`, and validates the response via `validateQuiz`.
+1. Client posts to `/api/generate-quiz` with topic, difficulty, quantity, timed flag, language, and chosen provider (Azure or Perplexity).
+2. Route builds a JSON schema describing the quiz payload, calls `azureChatJson` or `perplexityChatJson`, and validates the response via `validateQuiz`.
 3. `QuizRunner` renders multiple-choice cards, collects selections, and computes scores client-side.
 4. When the learner requests “Practice similar to missed,” the client posts the set of missed subtopics to `/api/drill-quiz` for a follow-up set.
 
 **Help Me Prepare**
-1. Learner enters a broad topic → client calls `/api/subtopic-map` to build a 2–3 level hierarchy.
-2. Immediately afterwards, the client requests `/api/diagnostic-quiz` to sample those subtopics in a 6-question diagnostic.
+1. Learner enters a broad topic → client calls `/api/subtopic-map` (against the selected provider) to build a 2–3 level hierarchy.
+2. Immediately afterwards, the client requests `/api/diagnostic-quiz` (same provider) to sample those subtopics in a 6-question diagnostic.
 3. After submission, `QuizRunner` identifies missed questions; the page records weak subtopics and prompts the learner to confirm or adjust them.
 4. `/api/drill-quiz` produces short targeted drills. Scores are tracked locally per subtopic (`scores` state), with difficulty level auto-escalating on strong performance.
 5. When all tracked subtopics exceed a mastery threshold, the UI shows a summary card listing initial vs latest scores and offers to keep practicing.
@@ -113,6 +113,12 @@ Both modes work in English by default, and you can request questions in other la
 - `tryParseJson` is defensive: if the model returns text wrapped around JSON, it attempts to extract the JSON slice before failing.
 - Endpoints use per-route schemas so the LLM is constrained to required fields (IDs, choices, explanations, per-question difficulty and subtopic tags).
 - `validateQuiz` performs post-generation structural checks (unique IDs, minimum choices, presence of the correct answer, duplicate-choice guard).
+
+### Perplexity Sonar Integration
+- `perplexityChatJson` hits `https://api.perplexity.ai/chat/completions` with the Sonar or Sonar Pro model.
+- System prompts embed the JSON schema and instruct the model to answer with JSON only; the helper strictly parses the returned text.
+- Retries mirror the Azure helper: quick exponential backoff and JSON-slice extraction when extra prose sneaks in.
+- If `PERPLEXITY_API_KEY` is missing, the helper throws a descriptive error so the UI can surface a helpful message.
 
 ### Validation, Safety, and UX Details
 - Error handling: Each route retries up to three attempts before returning 5xx with a plain error; client surfaces via `ErrorNotice`.
@@ -143,19 +149,20 @@ Both modes work in English by default, and you can request questions in other la
    ```
 
 ### Environment & Secrets
-Create `.env.local` with your Azure OpenAI credentials:
+Create `.env.local` with your Azure OpenAI credentials (and optional Perplexity key if you want to use Sonar or Sonar Pro):
 ```
 AZURE_OPENAI_ENDPOINT=https://YOUR-RESOURCE-NAME.openai.azure.com
 AZURE_OPENAI_API_KEY=your-key
 AZURE_OPENAI_DEPLOYMENT=gpt-4o-mini
 AZURE_OPENAI_API_VERSION=2024-10-21
+PERPLEXITY_API_KEY=your-perplexity-key
 ```
 
 Notes:
 - Endpoint format must include the protocol and resource host.
 - Deployment name should match the model slot defined in Azure (defaults to `gpt-4o-mini` if omitted).
 - `AZURE_OPENAI_API_VERSION` defaults to `2024-10-21`, but you can pin it to the version that matches your deployment.
-- The helper logs a warning if endpoint or key are missing, making local debugging friendlier.
+- The helper logs a warning if endpoint or key are missing, making local debugging friendlier. Perplexity support requires `PERPLEXITY_API_KEY`; without it the dropdown will still show Azure but calls to Sonar/Sonar Pro will return errors.
 
 ### CLI Script & Sample Endpoint
 - **`scripts/sample-quiz.mjs`**: Node CLI that loads `.env.local`, calls Azure Chat Completions with the same schema used in the app, and prints a quiz JSON payload. Helpful for debugging prompts or running smoke checks from a shell.

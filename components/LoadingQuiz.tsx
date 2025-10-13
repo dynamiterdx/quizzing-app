@@ -1,7 +1,11 @@
 "use client";
 export function LoadingQuiz({ label = 'Generating your quiz…' }: { label?: string }) {
   return (
-    <div className="mt-3 card">
+    <div className="mt-3 card loading-card">
+      <div className="loader-top" aria-hidden>
+        <div className="loader-glow" />
+        <div className="loader-trophy">🏆</div>
+      </div>
       <div className="loader-wrap">
         <div className="loader-spinner" aria-hidden />
         <div className="loader-title shimmer" style={{ width: '60%' }} />
@@ -16,4 +20,3 @@ export function LoadingQuiz({ label = 'Generating your quiz…' }: { label?: str
     </div>
   );
 }
-

@@ -142,8 +142,20 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px
   100% { background-position: 400px 0; }
 }
 .shimmer { background: linear-gradient(90deg, #f0ecff 0%, #ffffff 20%, #f0ecff 40%); background-size: 400px 100%; animation: shimmer 1.2s infinite linear; border-radius: 12px; height: 16px; }
+.loading-card { position: relative; overflow: hidden; }
+.loader-top { position: relative; display: flex; justify-content: center; margin-bottom: 16px; }
+.loader-glow { position: absolute; width: 140px; height: 140px; background: radial-gradient(circle, rgba(124,58,237,0.35) 0%, rgba(124,58,237,0) 65%); filter: blur(2px); top: -30px; }
+.loader-trophy { position: relative; width: 64px; height: 64px; border-radius: 20px; display: grid; place-items: center; font-size: 34px; box-shadow: 0 12px 30px rgba(124, 58, 237, 0.3); background: linear-gradient(150deg, #fef08a, #facc15); animation: floaty 2.2s ease-in-out infinite; }
+.loader-trophy::after { content: ''; position: absolute; inset: 6px; border-radius: 16px; border: 2px solid rgba(255, 255, 255, 0.7); }
+.loading-card::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at top, rgba(167, 139, 250, 0.18), transparent 60%); opacity: 0.7; }
+.loading-card > * { position: relative; z-index: 1; }
 .loader-wrap { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: center; }
 .loader-spinner { width: 32px; height: 32px; border-radius: 50%; border: 3px solid #e6ddff; border-top-color: var(--primary); animation: spin 0.9s linear infinite; }
 .loader-title { height: 18px; }
 .loader-sub { height: 12px; border-radius: 8px; }
 .loader-option { height: 54px; border-radius: 12px; margin-top: 10px; }
+.loader-option:first-of-type { margin-top: 0; }
+@keyframes floaty {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}

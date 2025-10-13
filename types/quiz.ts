@@ -1,5 +1,7 @@
 export type Difficulty = 'beginner' | 'elementary' | 'intermediate' | 'advanced' | 'expert';
 
+export type ModelProvider = 'azure' | 'perplexity' | 'perplexity-pro';
+
 export interface QuizQuestion {
   id: string;
   question: string;

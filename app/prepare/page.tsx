@@ -2,7 +2,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { ErrorNotice } from '@/components/ErrorNotice';
 import { QuizRunner } from '@/components/QuizRunner';
-import { QuizSet, SubtopicNode, SubtopicScore, PrepSummary } from '@/types/quiz';
+import { QuizSet, SubtopicNode, SubtopicScore, PrepSummary, ModelProvider } from '@/types/quiz';
 import { LoadingQuiz } from '@/components/LoadingQuiz';
 
 type Step = 'map' | 'diagnostic' | 'select' | 'drill' | 'summary';
@@ -10,6 +10,7 @@ type Step = 'map' | 'diagnostic' | 'select' | 'drill' | 'summary';
 export default function PreparePage() {
   const [topic, setTopic] = useState('');
   const [language, setLanguage] = useState('English');
+  const [provider, setProvider] = useState<ModelProvider>('azure');
   const [step, setStep] = useState<Step>('map');
   const [map, setMap] = useState<SubtopicNode[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -23,14 +24,14 @@ export default function PreparePage() {
   const buildMap = useCallback(async () => {
     setLoading(true); setError(null); setMap(null);
     try {
-      const res = await fetch('/api/subtopic-map', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topic, language }) });
+      const res = await fetch('/api/subtopic-map', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topic, language, provider }) });
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
       setMap(data.subtopics);
       setStep('diagnostic');
       // generate diagnostic quiz sampling map top-level subtopics
       const sample = (data.subtopics || []).slice(0, 6).map((s: any) => s.name);
-      const dres = await fetch('/api/diagnostic-quiz', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topic, subtopics: sample, language }) });
+      const dres = await fetch('/api/diagnostic-quiz', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topic, subtopics: sample, language, provider }) });
       if (!dres.ok) throw new Error(await dres.text());
       const dq = await dres.json();
       setDiagnosticQuiz({ topic, difficulty: 'beginner', language, timed: false, questions: dq.questions });
@@ -38,7 +39,7 @@ export default function PreparePage() {
       setError('Failed to build subtopic map or diagnostic. Please retry.');
       setStep('map');
     } finally { setLoading(false); }
-  }, [topic, language]);
+  }, [topic, language, provider]);
 
   const onDiagnosticDone = useCallback((missed: any[], quiz: QuizSet) => {
     // Compute per-subtopic correctness
@@ -64,7 +65,7 @@ export default function PreparePage() {
   const startDrill = useCallback(async () => {
     setLoading(true); setError(null);
     try {
-      const res = await fetch('/api/drill-quiz', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topic, targetSubtopics: weakSubtopics, targetDifficulty: drillDifficulty, language }) });
+      const res = await fetch('/api/drill-quiz', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topic, targetSubtopics: weakSubtopics, targetDifficulty: drillDifficulty, language, provider }) });
       if (!res.ok) throw new Error(await res.text());
       const dq = await res.json();
       setDrillQuiz({ topic, difficulty: drillDifficulty, language, timed: false, questions: dq.questions });
@@ -72,7 +73,7 @@ export default function PreparePage() {
     } catch (e: any) {
       setError('Failed to start drill. Please retry.');
     } finally { setLoading(false); }
-  }, [topic, weakSubtopics, drillDifficulty, language]);
+  }, [topic, weakSubtopics, drillDifficulty, language, provider]);
 
   const updateScoresAfterDrill = useCallback((correctPct: number) => {
     setScores((s) => {
@@ -116,6 +117,14 @@ export default function PreparePage() {
           <div>
             <label htmlFor="language">Language</label>
             <input id="language" value={language} onChange={(e) => setLanguage(e.target.value)} />
+          </div>
+          <div>
+            <label htmlFor="provider-select">Model</label>
+            <select id="provider-select" value={provider} onChange={(e) => setProvider(e.target.value as ModelProvider)}>
+              <option value="azure">Azure OpenAI</option>
+              <option value="perplexity">Perplexity Sonar</option>
+              <option value="perplexity-pro">Perplexity Sonar Pro</option>
+            </select>
           </div>
           <div className="mt-2">
             <button onClick={buildMap} disabled={loading || topic.trim().length < 3}>{loading ? 'Thinking…' : 'Build subtopic map & diagnostic'}</button>

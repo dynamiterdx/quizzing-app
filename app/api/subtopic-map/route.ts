@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { azureChatJson } from '@/lib/azure';
+import { perplexityChatJson } from '@/lib/perplexity';
+import { ModelProvider } from '@/types/quiz';
 
 const mapSchema = {
   type: 'object',
@@ -47,11 +49,15 @@ const mapSchema = {
 } as const;
 
 export async function POST(req: NextRequest) {
-  const { topic, language } = await req.json();
+  const { topic, language, provider }: { topic: string; language: string; provider?: ModelProvider } = await req.json();
+  const modelProvider: ModelProvider = provider === 'perplexity' || provider === 'perplexity-pro' ? provider : 'azure';
   const system = `You are a tutor. Build a small, practical subtopic map (2–3 levels max) covering the essential parts of the given topic. Keep names concise and intuitive. Return only JSON.`;
   const user = `Topic: ${topic}. Language: ${language}. Keep the map small and useful for practice.`;
   try {
-    const data = await azureChatJson<any>({ system, user, jsonSchema: mapSchema as any, temperature: 0.5, retries: 1 });
+    const data = await (modelProvider === 'azure'
+      ? azureChatJson<any>({ system, user, jsonSchema: mapSchema as any, retries: 1 })
+      : perplexityChatJson<any>({ system, user, jsonSchema: mapSchema as any, retries: 1, model: modelProvider === 'perplexity-pro' ? 'sonar-pro' : 'sonar' })
+    );
     return NextResponse.json(data);
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || 'Failed to generate subtopics' }, { status: 500 });
