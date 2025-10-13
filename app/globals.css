@@ -26,8 +26,10 @@ body {
 }
 .container { max-width: 1040px; margin: 0 auto; padding: 16px; }
 .site-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; }
-.logo-link { display: flex; align-items: center; gap: 8px; text-decoration: none; }
 .brand { font-size: 1.2rem; letter-spacing: 0.2px; background: linear-gradient(90deg, var(--primary), #a78bfa); -webkit-background-clip: text; background-clip: text; color: transparent; font-weight: 800; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+.logo-link { display: inline-flex; align-items: center; justify-content: center; }
+.logo-placeholder { display: inline-block; width: 68px; height: 68px; }
 .site-footer { color: var(--muted); font-size: 0.85rem; padding: 24px 0; text-align: center; }
 
 /* Hero */
@@ -42,6 +44,7 @@ body {
   overflow: hidden;
   box-shadow: var(--shadow-md);
 }
+.hero-logo-right { position: absolute; right: 24px; top: 24px; }
 .hero h2 { margin: 0 0 6px; font-size: 2rem; }
 .hero p { margin: 0; color: #f3edff; }
 .hero .actions { margin-top: 14px; display: flex; gap: 10px; flex-wrap: wrap; }
@@ -66,6 +69,9 @@ button:focus-visible, .focus-ring:focus-visible { outline: 3px solid var(--focus
 .btn-cta:hover { background: #ffcc33; }
 .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); box-shadow: none; }
 .btn-outline:hover { border-color: #d8d1ff; }
+.llm-button { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 999px; background: rgba(255,255,255,0.22); color: #1f1845; text-decoration: none; font-weight: 700; border: 1px solid rgba(255,255,255,0.3); box-shadow: 0 6px 16px rgba(90, 63, 180, 0.25); transition: transform .15s ease, box-shadow .15s ease; }
+.llm-button:hover { transform: translateY(-1px); box-shadow: 0 10px 20px rgba(90, 63, 180, 0.28); }
+.llm-button:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 
 /* Inputs */
 label { display: block; margin-bottom: 6px; font-weight: 700; color: var(--text); }
