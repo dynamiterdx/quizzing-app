@@ -1,8 +1,10 @@
 "use client";
-import { useCallback, useMemo, useState } from 'react';
-import { QuizSet, QuizQuestion, ModelProvider } from '@/types/quiz';
+import { useCallback, useMemo, useState, useEffect } from 'react';
+import { QuizSet, QuizQuestion } from '@/types/quiz';
 import { QuizRunner } from '@/components/QuizRunner';
 import { ErrorNotice } from '@/components/ErrorNotice';
+import { useLLMSettings } from '@/lib/llm-settings';
+import { useRouter } from 'next/navigation';
 import { LoadingQuiz } from '@/components/LoadingQuiz';
 
 export default function TargetedPage() {
@@ -11,12 +13,22 @@ export default function TargetedPage() {
   const [numQuestions, setNumQuestions] = useState(6);
   const [timed, setTimed] = useState(false);
   const [language, setLanguage] = useState('English');
-  const [provider, setProvider] = useState<ModelProvider>('azure');
+  const { settings, isConfigured } = useLLMSettings();
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [quiz, setQuiz] = useState<QuizSet | null>(null);
 
-  const canGenerate = topic.trim().length > 2 && numQuestions >= 3 && numQuestions <= 15;
+  useEffect(() => {
+    if (!isConfigured) {
+      router.replace('/llm-settings?next=/targeted');
+    }
+  }, [isConfigured, router]);
+
+  const provider = settings.provider;
+  const perplexityKey = settings.perplexityKey;
+
+  const canGenerate = topic.trim().length > 2 && numQuestions >= 3 && numQuestions <= 15 && isConfigured;
 
   const generateQuiz = useCallback(async () => {
     setLoading(true); setError(null); setQuiz(null);
@@ -24,7 +36,7 @@ export default function TargetedPage() {
       const res = await fetch('/api/generate-quiz', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic, difficulty, numQuestions, timed, language, provider }),
+        body: JSON.stringify({ topic, difficulty, numQuestions, timed, language, provider, perplexityKey }),
       });
       if (!res.ok) throw new Error(await res.text());
       const q = await res.json();
@@ -34,7 +46,7 @@ export default function TargetedPage() {
       const msg = e?.message || 'Failed to generate quiz. Please retry.';
       setError(msg.includes('429') ? 'Rate limited. Please wait a few seconds and try again.' : 'Error generating quiz. Please retry.');
     } finally { setLoading(false); }
-  }, [topic, difficulty, numQuestions, timed, language]);
+  }, [topic, difficulty, numQuestions, timed, language, provider, perplexityKey]);
 
   const practiceMore = useCallback(async (missed: QuizQuestion[]) => {
     if (!missed.length) return;
@@ -43,7 +55,7 @@ export default function TargetedPage() {
       const missedSubtopics = Array.from(new Set(missed.map((m) => m.subtopic).filter(Boolean))) as string[];
       const res = await fetch('/api/drill-quiz', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic, targetSubtopics: missedSubtopics, targetDifficulty: difficulty, language, provider }),
+        body: JSON.stringify({ topic, targetSubtopics: missedSubtopics, targetDifficulty: difficulty, language, provider, perplexityKey }),
       });
       if (!res.ok) throw new Error(await res.text());
       const q = await res.json();
@@ -52,7 +64,7 @@ export default function TargetedPage() {
     } catch (e: any) {
       setError('Could not generate follow-up questions. Please retry.');
     } finally { setLoading(false); }
-  }, [topic, difficulty, language, timed]);
+  }, [topic, difficulty, language, timed, provider, perplexityKey]);
 
   return (
     <div className="card">
@@ -82,14 +94,6 @@ export default function TargetedPage() {
           <label htmlFor="language">Language</label>
           <input id="language" value={language} onChange={(e) => setLanguage(e.target.value)} />
         </div>
-        <div>
-          <label htmlFor="provider">Model</label>
-          <select id="provider" value={provider} onChange={(e) => setProvider(e.target.value as ModelProvider)}>
-            <option value="azure">Azure OpenAI</option>
-            <option value="perplexity">Perplexity Sonar</option>
-            <option value="perplexity-pro">Perplexity Sonar Pro</option>
-          </select>
-        </div>
       </div>
       <div className="mt-2 flex">
         <label className="flex" htmlFor="timed">
@@ -97,6 +101,7 @@ export default function TargetedPage() {
           Timed
         </label>
         <button onClick={generateQuiz} disabled={!canGenerate || loading}>{loading ? 'Generating…' : 'Generate quiz'}</button>
+        <button type="button" className="btn btn-outline" onClick={() => router.push('/llm-settings?next=/targeted')}>Change model</button>
       </div>
 
       {error && (
@@ -105,6 +110,7 @@ export default function TargetedPage() {
 
       {loading && <LoadingQuiz />}
       {quiz && !loading && <QuizRunner quiz={quiz} onPracticeMore={practiceMore} />}
+      <p className="muted mt-2">Using model: {provider === 'azure' ? 'Azure OpenAI' : provider === 'perplexity' ? 'Perplexity Sonar' : 'Perplexity Sonar Pro'}</p>
     </div>
   );
 }

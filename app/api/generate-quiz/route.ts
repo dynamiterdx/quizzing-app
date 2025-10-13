@@ -49,7 +49,7 @@ const quizSchema = {
 } as const;
 
 export async function POST(req: NextRequest) {
-  const { topic, difficulty, numQuestions, timed, language, provider }: { topic: string; difficulty: string; numQuestions: number; timed: boolean; language: string; provider?: ModelProvider } = await req.json();
+  const { topic, difficulty, numQuestions, timed, language, provider, perplexityKey }: { topic: string; difficulty: string; numQuestions: number; timed: boolean; language: string; provider?: ModelProvider; perplexityKey?: string } = await req.json();
   const modelProvider: ModelProvider = provider === 'perplexity' || provider === 'perplexity-pro' ? provider : 'azure';
 
   const system = `You are a helpful quiz generator. Create clear multiple-choice questions with exactly one correct answer, age-appropriate, no tricks, no duplicates. Use Markdown and LaTeX where helpful in questions, choices, and explanations (e.g., math with $...$ / $$...$$, code/SQL in backticks). Keep explanations brief. Return only JSON using the provided schema.`;
@@ -69,11 +69,12 @@ export async function POST(req: NextRequest) {
         if (v.ok) return NextResponse.json(quiz);
       } else {
         const quiz = await perplexityChatJson<any>({
-        system,
-        user,
-        jsonSchema: quizSchema as any,
+          system,
+          user,
+          jsonSchema: quizSchema as any,
           retries: 1,
           model: modelProvider === 'perplexity-pro' ? 'sonar-pro' : 'sonar',
+          apiKey: perplexityKey,
         });
         const v = validateQuiz(quiz);
         if (v.ok) return NextResponse.json(quiz);

@@ -1,8 +1,8 @@
 const perplexityEndpoint = 'https://api.perplexity.ai/chat/completions';
-const perplexityKey = process.env.PERPLEXITY_API_KEY;
+const envPerplexityKey = process.env.PERPLEXITY_API_KEY;
 
-if (!perplexityKey) {
-  console.warn('[Perplexity] Missing PERPLEXITY_API_KEY. Set it to enable sonar model.');
+if (!envPerplexityKey) {
+  console.warn('[Perplexity] No PERPLEXITY_API_KEY in environment. Provide one via settings if needed.');
 }
 
 type Schema = Record<string, unknown>;
@@ -23,14 +23,17 @@ export async function perplexityChatJson<T>({
   jsonSchema,
   retries = 1,
   model = 'sonar',
+  apiKey,
 }: {
   system: string;
   user: string;
   jsonSchema: Schema;
   retries?: number;
   model?: 'sonar' | 'sonar-pro';
+  apiKey?: string;
 }): Promise<T> {
-  if (!perplexityKey) throw new Error('PERPLEXITY_API_KEY not configured');
+  const keyToUse = apiKey || envPerplexityKey;
+  if (!keyToUse) throw new Error('Perplexity API key not provided');
 
   const body = {
     model,
@@ -50,7 +53,7 @@ export async function perplexityChatJson<T>({
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
-        Authorization: `Bearer ${perplexityKey}`,
+        Authorization: `Bearer ${keyToUse}`,
       },
       body: JSON.stringify(body),
     });
