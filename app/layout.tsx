@@ -6,37 +6,25 @@ import { SiteHeader } from '@/components/SiteHeader';
 import ConnectBanner from '@/components/ConnectBanner';
 import localFont from 'next/font/local';
 
-const lufga = localFont({
+const urbanist = localFont({
   src: [
-    { path: '../fonts/lufga/LufgaThin.ttf', weight: '100', style: 'normal' },
-    { path: '../fonts/lufga/LufgaThinItalic.ttf', weight: '100', style: 'italic' },
-    { path: '../fonts/lufga/LufgaExtraLight.ttf', weight: '200', style: 'normal' },
-    { path: '../fonts/lufga/LufgaExtraLightItalic.ttf', weight: '200', style: 'italic' },
-    { path: '../fonts/lufga/LufgaLight.ttf', weight: '300', style: 'normal' },
-    { path: '../fonts/lufga/LufgaLightItalic.ttf', weight: '300', style: 'italic' },
-    { path: '../fonts/lufga/LufgaRegular.ttf', weight: '400', style: 'normal' },
-    { path: '../fonts/lufga/LufgaItalic.ttf', weight: '400', style: 'italic' },
-    { path: '../fonts/lufga/LufgaMedium.ttf', weight: '500', style: 'normal' },
-    { path: '../fonts/lufga/LufgaMediumItalic.ttf', weight: '500', style: 'italic' },
-    { path: '../fonts/lufga/LufgaSemiBold.ttf', weight: '600', style: 'normal' },
-    { path: '../fonts/lufga/LufgaSemiBoldItalic.ttf', weight: '600', style: 'italic' },
-    { path: '../fonts/lufga/LufgaBold.ttf', weight: '700', style: 'normal' },
-    { path: '../fonts/lufga/LufgaBoldItalic.ttf', weight: '700', style: 'italic' },
-    { path: '../fonts/lufga/LufgaExtraBold.ttf', weight: '800', style: 'normal' },
-    { path: '../fonts/lufga/LufgaExtraBoldItalic.ttf', weight: '800', style: 'italic' },
-    { path: '../fonts/lufga/LufgaBlack.ttf', weight: '900', style: 'normal' },
-    { path: '../fonts/lufga/LufgaBlackItalic.ttf', weight: '900', style: 'italic' },
+    { path: '../fonts/urbanist/static/Urbanist-Regular.ttf', weight: '400', style: 'normal' },
+    { path: '../fonts/urbanist/static/Urbanist-Medium.ttf', weight: '500', style: 'normal' },
+    { path: '../fonts/urbanist/static/Urbanist-SemiBold.ttf', weight: '600', style: 'normal' },
+    { path: '../fonts/urbanist/static/Urbanist-Bold.ttf', weight: '700', style: 'normal' },
   ],
-  variable: '--font-lufga',
+  variable: '--font-urbanist',
   display: 'swap',
 });
 
-const urbanist = localFont({
+const lufga = localFont({
   src: [
-    { path: '../fonts/urbanist/Urbanist-VariableFont_wght.ttf', weight: '100 900', style: 'normal' },
-    { path: '../fonts/urbanist/Urbanist-Italic-VariableFont_wght.ttf', weight: '100 900', style: 'italic' },
+    { path: '../fonts/lufga/LufgaLight.ttf', weight: '300', style: 'normal' },
+    { path: '../fonts/lufga/LufgaRegular.ttf', weight: '400', style: 'normal' },
+    { path: '../fonts/lufga/LufgaMedium.ttf', weight: '500', style: 'normal' },
+    { path: '../fonts/lufga/LufgaSemiBold.ttf', weight: '600', style: 'normal' },
   ],
-  variable: '--font-urbanist',
+  variable: '--font-lufga',
   display: 'swap',
 });
 
