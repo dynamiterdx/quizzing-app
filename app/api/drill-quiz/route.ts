@@ -12,7 +12,7 @@ const drillSchema = {
     questions: {
       type: 'array',
       minItems: 3,
-      maxItems: 6,
+      maxItems: 48,
       items: {
         type: 'object',
         additionalProperties: false,
@@ -59,8 +59,10 @@ export async function POST(req: NextRequest) {
   } = await req.json();
   const modelProvider: ModelProvider = provider === 'perplexity' || provider === 'perplexity-pro' ? provider : 'azure';
   const system = `You are a tutor. Create a short drill quiz focusing on the selected subtopics. Keep clarity high and explanations brief. Exactly one correct answer per question. Use Markdown and LaTeX where helpful in questions, choices, and explanations (math $...$ / $$...$$, code in backticks). Return only JSON.`;
-  const count = Math.max(3, Math.min(questionCount ?? 4, 6));
-  const user = `Topic: ${topic}. Focus subtopics: ${Array.isArray(targetSubtopics) ? targetSubtopics.join(', ') : ''}. Difficulty: ${targetDifficulty} (levels: beginner, elementary, intermediate, advanced, expert). Language: ${language}. Questions: ${count}.`;
+  const targetNames = Array.isArray(targetSubtopics) ? targetSubtopics : [];
+  const derivedCount = targetNames.length > 0 ? targetNames.length * 6 : 6;
+  const count = Math.max(6, Math.min(questionCount ?? derivedCount, 48));
+  const user = `Topic: ${topic}. Focus subtopics: ${targetNames.join(', ')}. Aim for at least 6 questions per subtopic. Difficulty: ${targetDifficulty} (levels: beginner, elementary, intermediate, advanced, expert). Language: ${language}. Questions: ${count}.`;
   try {
     for (let i = 0; i < 3; i++) {
       const quiz = await (modelProvider === 'azure'

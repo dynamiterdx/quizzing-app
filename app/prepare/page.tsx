@@ -5,9 +5,19 @@ import { ErrorNotice } from '@/components/ErrorNotice';
 import { LoadingQuiz } from '@/components/LoadingQuiz';
 import { QuizRunner, QuizRunSummary } from '@/components/QuizRunner';
 import { useLLMSettings } from '@/lib/llm-settings';
-import type { Difficulty, PrepSummary, QuizSet, SubtopicNode, SubtopicScore } from '@/types/quiz';
+import type { Difficulty, QuizSet, SubtopicNode } from '@/types/quiz';
 
-type Step = 'setup' | 'diagnostic' | 'select' | 'drill' | 'summary';
+type Step = 'setup' | 'map' | 'diagnostic' | 'select' | 'drill' | 'summary';
+type Weight = 'low' | 'med' | 'high';
+
+interface EditableSubtopic {
+  id: string;
+  name: string;
+  description?: string;
+  included: boolean;
+  weight: Weight;
+  childHints?: string[];
+}
 
 interface SubtopicAccuracy {
   name: string;
@@ -22,16 +32,24 @@ const difficultyOrder: Difficulty[] = ['beginner', 'elementary', 'intermediate',
 const masteryThreshold = 75;
 const maxDrillRounds = 4;
 
-function difficultyFromAccuracy(pct: number): Difficulty {
-  if (pct >= 85) return 'advanced';
-  if (pct >= 70) return 'intermediate';
-  if (pct >= 55) return 'elementary';
-  return 'beginner';
-}
-
 function clampInt(value: number, min: number, max: number) {
   if (Number.isNaN(value)) return min;
   return Math.min(max, Math.max(min, Math.round(value)));
+}
+
+function makeId() {
+  return `sub-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function normalizeMap(nodes: SubtopicNode[]): EditableSubtopic[] {
+  return nodes.map((node) => ({
+    id: node.id || makeId(),
+    name: node.name,
+    description: node.description,
+    included: true,
+    weight: 'med',
+    childHints: node.children?.map((child) => child.name) ?? undefined,
+  }));
 }
 
 function computeAccuracies(summary: QuizRunSummary): SubtopicAccuracy[] {
@@ -60,31 +78,6 @@ function suggestWeakAreas(accuracies: SubtopicAccuracy[]): string[] {
   return sorted.slice(0, Math.min(3, sorted.length)).map((item) => item.name);
 }
 
-function toSubtopicScores(scores: ScoreMap): SubtopicScore[] {
-  return Object.entries(scores).map(([subtopic, value]) => ({
-    subtopic,
-    initialScore: value.initial,
-    latestScore: value.latest,
-  }));
-}
-
-function renderSubtopicTree(nodes: SubtopicNode[] | null, depth = 0): JSX.Element | null {
-  if (!nodes || !nodes.length) return null;
-  return (
-    <ul style={{ marginLeft: depth ? 16 : 0 }} className="mt-1">
-      {nodes.map((node) => (
-        <li key={node.id} className="mt-1">
-          <div>
-            <strong>{node.name}</strong>
-            {node.description && <span className="muted"> — {node.description}</span>}
-          </div>
-          {node.children && node.children.length ? renderSubtopicTree(node.children, depth + 1) : null}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 export default function PreparePage() {
   const router = useRouter();
   const { settings, isConfigured } = useLLMSettings();
@@ -96,10 +89,13 @@ export default function PreparePage() {
   const [diagnosticMinutes, setDiagnosticMinutes] = useState(6);
 
   const [step, setStep] = useState<Step>('setup');
-  const [map, setMap] = useState<SubtopicNode[] | null>(null);
-  const [mapCompact, setMapCompact] = useState(false);
   const [loadingLabel, setLoadingLabel] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const [editableSubtopics, setEditableSubtopics] = useState<EditableSubtopic[]>([]);
+  const [approvedSubtopics, setApprovedSubtopics] = useState<EditableSubtopic[] | null>(null);
+  const [mapCompact, setMapCompact] = useState(false);
+  const [mapChangedMessage, setMapChangedMessage] = useState<string | null>(null);
 
   const [diagnosticQuiz, setDiagnosticQuiz] = useState<QuizSet | null>(null);
   const [diagnosticSummary, setDiagnosticSummary] = useState<QuizRunSummary | null>(null);
@@ -115,7 +111,11 @@ export default function PreparePage() {
   const [drillSummary, setDrillSummary] = useState<QuizRunSummary | null>(null);
   const [drillRounds, setDrillRounds] = useState(0);
 
-  const [prepSummary, setPrepSummary] = useState<PrepSummary | null>(null);
+  const [prepSummary, setPrepSummary] = useState<{
+    headline?: string;
+    encouragement?: string;
+    pointers: { subtopic: string; tip: string }[];
+  } | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
 
   useEffect(() => {
@@ -134,121 +134,214 @@ export default function PreparePage() {
     [scoreMap, selectedSubtopics]
   );
 
-  const startOver = () => {
+  const resetLearningState = useCallback(() => {
+    setDiagnosticQuiz(null);
     setDiagnosticSummary(null);
     setDiagnosticAccuracies([]);
     setSelectedSubtopics([]);
     setScoreMap({});
-    setDrillRounds(0);
+    setDrillQuiz(null);
     setDrillSummary(null);
+    setDrillRounds(0);
     setPrepSummary(null);
-  };
+    setSummaryLoading(false);
+  }, []);
 
-  const createPlan = useCallback(
-    async (opts?: { compact?: boolean }) => {
-      const trimmedTopic = topic.trim();
-      if (trimmedTopic.length < 3) {
-        setError('Please enter a topic with at least three characters.');
-        return;
-      }
-      setError(null);
-      setLoadingLabel('Mapping your study plan…');
-      try {
-        startOver();
-        const mapRes = await fetch('/api/subtopic-map', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            topic: trimmedTopic,
-            language,
-            provider,
-            perplexityKey,
-            azureKey,
-            compact: opts?.compact ?? false,
-          }),
-        });
-        if (!mapRes.ok) throw new Error(await mapRes.text());
-        const mapJson = await mapRes.json();
-        setMap(mapJson.subtopics || []);
-        setMapCompact(Boolean(opts?.compact));
+  const invalidateApproval = useCallback((message: string) => {
+    setApprovedSubtopics(null);
+    setMapChangedMessage(message);
+    resetLearningState();
+    setStep('map');
+  }, [resetLearningState]);
 
-        setLoadingLabel('Drafting diagnostic quiz…');
-        const diagRes = await fetch('/api/diagnostic-quiz', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            topic: trimmedTopic,
-            subtopics: (mapJson.subtopics || []).map((node: SubtopicNode) => node.name),
-            language,
-            provider,
-            perplexityKey,
-            azureKey,
-            questionCount: diagnosticCount,
-          }),
-        });
-        if (!diagRes.ok) throw new Error(await diagRes.text());
-        const diagJson = await diagRes.json();
-        const durationSeconds = diagnosticTimed ? Math.max(60, clampInt(diagnosticMinutes * 60, 60, 30 * 60)) : undefined;
-
-        setDiagnosticQuiz({
-          ...diagJson,
+  const fetchSubtopicMap = useCallback(async ({ compact }: { compact: boolean }) => {
+    const trimmedTopic = topic.trim();
+    if (trimmedTopic.length < 3) {
+      setError('Please enter a topic with at least three characters.');
+      return;
+    }
+    setError(null);
+    setLoadingLabel('Mapping your study plan…');
+    try {
+      const res = await fetch('/api/subtopic-map', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           topic: trimmedTopic,
           language,
-          difficulty: 'beginner',
-          timed: diagnosticTimed,
-          durationSeconds,
-        });
-        setDrillTimed(diagnosticTimed);
-        setDrillMinutes(Math.max(3, Math.min(8, diagnosticMinutes)));
-    setStep('diagnostic');
-  } catch (e: any) {
-    setError('Could not reach the AI model. Check your API key in LLM Settings and try again.');
-    setStep('setup');
-  } finally {
-    setLoadingLabel(null);
-  }
-    },
-    [topic, language, provider, perplexityKey, azureKey, diagnosticCount, diagnosticTimed, diagnosticMinutes]
-  );
-
-  const simplifyMap = () => createPlan({ compact: true });
-
-  const handleDiagnosticComplete = useCallback(
-    (summary: QuizRunSummary) => {
-      const accuracies = computeAccuracies(summary);
-      setDiagnosticSummary(summary);
-      setDiagnosticAccuracies(accuracies);
-
-      const suggested = suggestWeakAreas(accuracies);
-      setSelectedSubtopics(suggested);
-
-      const initialScores: ScoreMap = {};
-      accuracies.forEach((item) => {
-        initialScores[item.name] = {
-          initial: item.accuracy,
-          latest: item.accuracy,
-          rounds: 0,
-          history: [item.accuracy],
-        };
+          provider,
+          perplexityKey,
+          azureKey,
+          compact,
+        }),
       });
-      setScoreMap(initialScores);
+      if (!res.ok) {
+        throw new Error(await res.text());
+      }
+      const data = await res.json();
+      const normalized = normalizeMap(data.subtopics || []);
+      if (!normalized.length) {
+        throw new Error('No subtopics returned. Please try a more specific topic.');
+      }
+      setTopic(trimmedTopic);
+      setEditableSubtopics(normalized);
+      setMapCompact(compact);
+      setApprovedSubtopics(null);
+      setMapChangedMessage(null);
+      resetLearningState();
+      setStep('map');
+    } catch (e: any) {
+      setError(e?.message || 'Failed to build the subtopic map. Please try again.');
+      setStep('setup');
+    } finally {
+      setLoadingLabel(null);
+    }
+  }, [topic, language, provider, perplexityKey, azureKey, resetLearningState]);
 
-      const selectedAccuracies = accuracies.filter((item) => suggested.includes(item.name));
-      const avg = selectedAccuracies.length
-        ? selectedAccuracies.reduce((sum, item) => sum + item.accuracy, 0) / selectedAccuracies.length
-        : 0;
-      setDrillDifficulty(selectedAccuracies.length ? difficultyFromAccuracy(avg) : 'beginner');
-      setDrillRounds(0);
-      setStep('select');
-    },
-    []
-  );
+  const simplifyMap = useCallback(() => {
+    fetchSubtopicMap({ compact: true });
+  }, [fetchSubtopicMap]);
+
+  const regenerateMap = useCallback(() => {
+    fetchSubtopicMap({ compact: mapCompact });
+  }, [fetchSubtopicMap, mapCompact]);
+
+  const markDirty = useCallback(() => {
+    if (approvedSubtopics) {
+      invalidateApproval('Subtopics changed. Previous diagnostic results were discarded. Approve again to continue.');
+    }
+  }, [approvedSubtopics, invalidateApproval]);
+
+  const updateSubtopic = (id: string, changes: Partial<EditableSubtopic>) => {
+    setEditableSubtopics((subs) =>
+      subs.map((sub) => (sub.id === id ? { ...sub, ...changes } : sub))
+    );
+    markDirty();
+  };
+
+  const toggleIncluded = (id: string) => {
+    setEditableSubtopics((subs) =>
+      subs.map((sub) => (sub.id === id ? { ...sub, included: !sub.included } : sub))
+    );
+    markDirty();
+  };
+
+  const removeSubtopic = (id: string) => {
+    setEditableSubtopics((subs) => subs.filter((sub) => sub.id !== id));
+    markDirty();
+  };
+
+  const addSubtopic = () => {
+    setEditableSubtopics((subs) => [
+      ...subs,
+      {
+        id: makeId(),
+        name: 'New subtopic',
+        description: '',
+        included: true,
+        weight: 'med',
+      },
+    ]);
+    markDirty();
+  };
+
+  const moveSubtopic = (index: number, direction: -1 | 1) => {
+    setEditableSubtopics((subs) => {
+      const next = subs.slice();
+      const target = index + direction;
+      if (target < 0 || target >= subs.length) return subs;
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
+    markDirty();
+  };
+
+  const approveMap = useCallback(async () => {
+    const included = editableSubtopics.filter((sub) => sub.included && sub.name.trim().length > 0);
+    if (!included.length) {
+      setError('Select at least one subtopic before approving.');
+      return;
+    }
+    setError(null);
+    setLoadingLabel('Drafting diagnostic quiz…');
+    try {
+      const payloadSubtopics = included.map((sub) => ({
+        name: sub.name.trim(),
+        weight: sub.weight,
+      }));
+      const res = await fetch('/api/diagnostic-quiz', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          topic: topic.trim(),
+          subtopics: payloadSubtopics,
+          language,
+          provider,
+          perplexityKey,
+          azureKey,
+          questionCount: diagnosticCount,
+        }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const diag = await res.json();
+      const durationSeconds = diagnosticTimed ? Math.max(60, clampInt(diagnosticMinutes * 60, 60, 30 * 60)) : undefined;
+      setApprovedSubtopics(included);
+      setDiagnosticQuiz({
+        ...diag,
+        topic: topic.trim(),
+        language,
+        difficulty: 'beginner',
+        timed: diagnosticTimed,
+        durationSeconds,
+      });
+      setDrillTimed(diagnosticTimed);
+      setDrillMinutes(Math.max(3, Math.min(8, diagnosticMinutes)));
+      setStep('diagnostic');
+    } catch (e: any) {
+      setError(e?.message || 'Failed to generate diagnostic quiz. Please try again.');
+    } finally {
+      setLoadingLabel(null);
+    }
+  }, [editableSubtopics, topic, language, provider, perplexityKey, azureKey, diagnosticCount, diagnosticTimed, diagnosticMinutes]);
+
+  const handleDiagnosticComplete = useCallback((summary: QuizRunSummary) => {
+    const accuracies = computeAccuracies(summary);
+    setDiagnosticSummary(summary);
+    setDiagnosticAccuracies(accuracies);
+
+    const suggested = suggestWeakAreas(accuracies);
+    setSelectedSubtopics(suggested);
+
+    const initialScores: ScoreMap = {};
+    accuracies.forEach((item) => {
+      initialScores[item.name] = {
+        initial: item.accuracy,
+        latest: item.accuracy,
+        rounds: 0,
+        history: [item.accuracy],
+      };
+    });
+    setScoreMap(initialScores);
+
+    const selectedAccuracies = accuracies.filter((item) => suggested.includes(item.name));
+    const avg = selectedAccuracies.length
+      ? selectedAccuracies.reduce((sum, item) => sum + item.accuracy, 0) / selectedAccuracies.length
+      : 0;
+    let startDifficulty: Difficulty = 'beginner';
+    if (avg >= 85) startDifficulty = 'advanced';
+    else if (avg >= 70) startDifficulty = 'intermediate';
+    else if (avg >= 55) startDifficulty = 'elementary';
+    setDrillDifficulty(startDifficulty);
+    setDrillRounds(0);
+    setStep('select');
+  }, []);
 
   const startDrill = useCallback(async () => {
     if (!topic.trim() || !selectedSubtopics.length) return;
     setError(null);
     setLoadingLabel('Generating focused drill questions…');
     try {
+      const questionsRequested = Math.max(selectedSubtopics.length * 6, 6);
       const res = await fetch('/api/drill-quiz', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -260,7 +353,7 @@ export default function PreparePage() {
           provider,
           perplexityKey,
           azureKey,
-          questionCount: Math.min(5, Math.max(3, selectedSubtopics.length >= 3 ? 5 : 4)),
+          questionCount: questionsRequested,
         }),
       });
       if (!res.ok) throw new Error(await res.text());
@@ -276,97 +369,105 @@ export default function PreparePage() {
       });
       setDrillSummary(null);
       setStep('drill');
-  } catch (e: any) {
-    setError('Could not reach the AI model for drills. Check your API key in LLM Settings and try again.');
-  } finally {
-    setLoadingLabel(null);
-  }
+    } catch (e: any) {
+      setError(e?.message || 'Could not generate drill questions. Please retry.');
+    } finally {
+      setLoadingLabel(null);
+    }
   }, [topic, selectedSubtopics, drillDifficulty, drillTimed, drillMinutes, language, provider, perplexityKey, azureKey]);
 
-  const transitionToSummary = useCallback(
-    async (scores: ScoreMap) => {
-      setPrepSummary(null);
-      setSummaryLoading(true);
-      setStep('summary');
-      try {
-        const res = await fetch('/api/prep-summary', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            topic,
-            language,
-            provider,
-            perplexityKey,
-            azureKey,
-            scores: toSubtopicScores(scores),
-          }),
-        });
-        if (!res.ok) throw new Error(await res.text());
-        const data = await res.json();
-        setPrepSummary({
-          ...data,
-          scores: toSubtopicScores(scores),
-        });
-      } catch (e: any) {
-        setError('We could not craft your prep summary. Check your API key and try again.');
-      } finally {
-        setSummaryLoading(false);
-      }
-    },
-    [topic, language, provider, perplexityKey, azureKey]
-  );
-
-  const handleDrillComplete = useCallback(
-    (summary: QuizRunSummary) => {
-      const accuracies = computeAccuracies(summary);
-      const accuracyByName = new Map(accuracies.map((item) => [item.name, item]));
-      const nextScores: ScoreMap = { ...scoreMap };
-
-      selectedSubtopics.forEach((name) => {
-        const previous = scoreMap[name] || { initial: 60, latest: 60, rounds: 0, history: [] };
-        const result = accuracyByName.get(name);
-        const latest = result ? result.accuracy : previous.latest;
-        nextScores[name] = {
-          initial: previous.initial,
-          latest,
-          rounds: previous.rounds + 1,
-          history: [...previous.history, latest],
-        };
+  const transitionToSummary = useCallback(async () => {
+    if (!Object.keys(scoreMap).length) return;
+    setPrepSummary(null);
+    setSummaryLoading(true);
+    setStep('summary');
+    try {
+      const res = await fetch('/api/prep-summary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          topic,
+          language,
+          provider,
+          perplexityKey,
+          azureKey,
+          scores: Object.entries(scoreMap).map(([subtopic, value]) => ({
+            subtopic,
+            initialScore: value.initial,
+            latestScore: value.latest,
+          })),
+        }),
       });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      setPrepSummary({
+        headline: data.headline,
+        encouragement: data.encouragement,
+        pointers: data.pointers ?? [],
+      });
+    } catch (e: any) {
+      setError(e?.message || 'We could not craft your prep summary. Check your API key and try again.');
+    } finally {
+      setSummaryLoading(false);
+    }
+  }, [scoreMap, topic, language, provider, perplexityKey, azureKey]);
 
-      setScoreMap(nextScores);
-      setDrillSummary(summary);
-      setDrillQuiz(null);
+  const handleDrillComplete = useCallback((summary: QuizRunSummary) => {
+    const accuracies = computeAccuracies(summary);
+    const accuracyByName = new Map(accuracies.map((item) => [item.name, item]));
+    const nextScores: ScoreMap = { ...scoreMap };
 
-      const nextRound = drillRounds + 1;
-      setDrillRounds(nextRound);
+    selectedSubtopics.forEach((name) => {
+      const previous = scoreMap[name] || { initial: 60, latest: 60, rounds: 0, history: [] };
+      const result = accuracyByName.get(name);
+      const latest = result ? result.accuracy : previous.latest;
+      nextScores[name] = {
+        initial: previous.initial,
+        latest,
+        rounds: previous.rounds + 1,
+        history: [...previous.history, latest],
+      };
+    });
 
-      const selectedAccuracies = selectedSubtopics.map((name) => nextScores[name]?.latest ?? 0);
-      const avg = selectedAccuracies.length ? selectedAccuracies.reduce((sum, val) => sum + val, 0) / selectedAccuracies.length : 0;
-      setDrillDifficulty(difficultyFromAccuracy(avg));
+    setScoreMap(nextScores);
+    setDrillSummary(summary);
+    setDrillQuiz(null);
 
-      const reachedMastery = selectedSubtopics.every((name) => (nextScores[name]?.latest ?? 0) >= masteryThreshold);
-      const reachedCap = nextRound >= maxDrillRounds;
+    const nextRound = drillRounds + 1;
+    setDrillRounds(nextRound);
 
-      if (reachedMastery || reachedCap) {
-        transitionToSummary(nextScores);
-      }
-    },
-    [scoreMap, selectedSubtopics, drillRounds, transitionToSummary]
-  );
+    const selectedAccuracies = selectedSubtopics.map((name) => nextScores[name]?.latest ?? 0);
+    const avg = selectedAccuracies.length ? selectedAccuracies.reduce((sum, val) => sum + val, 0) / selectedAccuracies.length : 0;
+    let nextDifficulty: Difficulty = 'beginner';
+    if (avg >= 85) nextDifficulty = 'advanced';
+    else if (avg >= 70) nextDifficulty = 'intermediate';
+    else if (avg >= 55) nextDifficulty = 'elementary';
+    setDrillDifficulty(nextDifficulty);
+
+    const reachedMastery = selectedSubtopics.every((name) => (nextScores[name]?.latest ?? 0) >= masteryThreshold);
+    const reachedCap = nextRound >= maxDrillRounds;
+
+    if (reachedMastery || reachedCap) {
+      transitionToSummary();
+    }
+  }, [scoreMap, selectedSubtopics, drillRounds, transitionToSummary]);
 
   const handleSkipToSummary = () => {
-    if (selectedSubtopics.length === 0) return;
-    transitionToSummary(scoreMap);
+    transitionToSummary();
   };
 
-  const canBuildPlan = topic.trim().length >= 3 && diagnosticCount >= 4 && diagnosticCount <= 10 && isConfigured;
+  const restartPlan = () => {
+    fetchSubtopicMap({ compact: mapCompact });
+  };
+
+  const canStartPlan = topic.trim().length >= 3 && diagnosticCount >= 4 && diagnosticCount <= 10 && isConfigured && !isLoading;
+  const canApprove = editableSubtopics.some((sub) => sub.included && sub.name.trim().length > 0) && !isLoading;
   const canStartDrill = selectedSubtopics.length > 0 && !isLoading;
 
   return (
     <div className="card">
       <h2>Help Me Prepare</h2>
-      <p className="muted">We diagnose weak areas, run targeted drills, and track how your understanding improves.</p>
+      <p className="muted">Diagnose weak areas, drill with focused quizzes, and track how your understanding improves.</p>
       <p className="muted">Current model: {provider === 'azure' ? 'Azure OpenAI' : provider === 'perplexity' ? 'Perplexity Sonar' : 'Perplexity Sonar Pro'}</p>
 
       {step === 'setup' && (
@@ -412,8 +513,8 @@ export default function PreparePage() {
             </div>
           </div>
           <div className="mt-3 flex" style={{ gap: 12 }}>
-            <button onClick={() => createPlan()} disabled={!canBuildPlan || isLoading}>
-              {isLoading ? 'Preparing…' : 'Build plan & diagnostic'}
+            <button onClick={() => fetchSubtopicMap({ compact: false })} disabled={!canStartPlan}>
+              {isLoading ? 'Preparing…' : 'Generate subtopic map'}
             </button>
             <button type="button" className="btn btn-outline" onClick={() => router.push('/llm-settings?next=/prepare')}>
               Change model
@@ -422,27 +523,133 @@ export default function PreparePage() {
         </div>
       )}
 
+      {step !== 'setup' && (
+        <div className="mt-3">
+          <label htmlFor="refineTopic">Refine topic</label>
+          <input id="refineTopic" value={topic} onChange={(e) => { setTopic(e.target.value); markDirty(); }} />
+          <div className="mt-2 flex" style={{ gap: 12 }}>
+            <button className="btn btn-outline" onClick={regenerateMap} disabled={isLoading}>Regenerate map</button>
+            <button className="btn btn-outline" onClick={simplifyMap} disabled={isLoading}>Simplify map</button>
+          </div>
+        </div>
+      )}
+
       {error && (
         <div className="mt-3">
-          <ErrorNotice message={error} retry={step === 'setup' ? () => createPlan() : undefined} />
+          <ErrorNotice message={error} retry={step === 'map' ? approveMap : step === 'setup' ? () => fetchSubtopicMap({ compact: false }) : undefined} />
+        </div>
+      )}
+
+      {mapChangedMessage && (
+        <div className="mt-3 card warn" role="status">
+          {mapChangedMessage}
         </div>
       )}
 
       {isLoading && <LoadingQuiz label={loadingLabel ?? 'Working…'} />}
 
-      {map && step !== 'setup' && (
-        <div className="mt-3 card">
+      {step === 'map' && (
+        <div className="mt-3">
           <div className="flex justify-between">
             <div>
               <h3>Subtopic map</h3>
-              <p className="muted">A focused outline tailored for {topic || 'your topic'}.</p>
+              <p className="muted">Adjust names, weights, or remove anything off-topic. Approve when it looks right.</p>
+              {mapCompact && <div className="pill mt-1">Simplified view</div>}
             </div>
-            <button className="btn btn-outline" onClick={simplifyMap} disabled={isLoading}>
-              Simplify map
-            </button>
+            <button onClick={addSubtopic} className="btn btn-outline">Add subtopic</button>
           </div>
-          {mapCompact && <div className="pill mt-2">Simplified view</div>}
-          {renderSubtopicTree(map)}
+
+          <div className="mt-2" style={{ display: 'grid', gap: 12 }}>
+            {editableSubtopics.map((sub, index) => (
+              <div key={sub.id} className="card">
+                <div className="flex justify-between">
+                  <div style={{ flex: 1 }}>
+                    <label htmlFor={`name-${sub.id}`}>Subtopic title</label>
+                    <input
+                      id={`name-${sub.id}`}
+                      value={sub.name}
+                      onChange={(e) => updateSubtopic(sub.id, { name: e.target.value })}
+                    />
+                  </div>
+                  <div className="flex" style={{ gap: 8 }}>
+                    <button
+                      type="button"
+                      className="btn btn-outline"
+                      aria-label="Move up"
+                      onClick={() => moveSubtopic(index, -1)}
+                      disabled={index === 0}
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-outline"
+                      aria-label="Move down"
+                      onClick={() => moveSubtopic(index, 1)}
+                      disabled={index === editableSubtopics.length - 1}
+                    >
+                      ↓
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-outline"
+                      onClick={() => removeSubtopic(sub.id)}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+                <div className="mt-2">
+                  <label htmlFor={`desc-${sub.id}`}>Description (optional)</label>
+                  <textarea
+                    id={`desc-${sub.id}`}
+                    value={sub.description ?? ''}
+                    onChange={(e) => updateSubtopic(sub.id, { description: e.target.value })}
+                    rows={2}
+                    style={{ width: '100%', padding: 10, borderRadius: 12, border: '1px solid var(--border)' }}
+                  />
+                </div>
+                {sub.childHints && sub.childHints.length > 0 && (
+                  <p className="muted mt-1" style={{ fontSize: '0.85rem' }}>
+                    Model hints: {sub.childHints.join(', ')}
+                  </p>
+                )}
+                <div className="mt-2 row cols-2">
+                  <label className="flex" style={{ gap: 8 }}>
+                    <input
+                      type="checkbox"
+                      checked={sub.included}
+                      onChange={() => toggleIncluded(sub.id)}
+                    />
+                    Include in plan
+                  </label>
+                  <div>
+                    <label htmlFor={`weight-${sub.id}`}>Priority</label>
+                    <select
+                      id={`weight-${sub.id}`}
+                      value={sub.weight}
+                      onChange={(e) => updateSubtopic(sub.id, { weight: e.target.value as Weight })}
+                    >
+                      <option value="low">Low</option>
+                      <option value="med">Medium</option>
+                      <option value="high">High</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-2">
+            <button onClick={addSubtopic} className="btn btn-outline">Add another subtopic</button>
+          </div>
+
+          <div className="mt-3 flex" style={{ gap: 12 }}>
+            <button onClick={approveMap} disabled={!canApprove}>
+              {isLoading ? 'Preparing…' : 'Approve subtopics'}
+            </button>
+            <span className="muted">We’ll build the diagnostic after approval.</span>
+          </div>
         </div>
       )}
 
@@ -457,7 +664,7 @@ export default function PreparePage() {
       {step === 'select' && diagnosticSummary && (
         <div className="mt-3">
           <h3>Diagnostic results</h3>
-          <p className="muted">We highlighted likely weak spots. Adjust the list before drilling.</p>
+          <p className="muted">We highlighted likely weak spots. Adjust before drilling.</p>
           <div className="mt-2 table-responsive">
             <table className="prep-table">
               <thead>
@@ -484,11 +691,8 @@ export default function PreparePage() {
                           type="checkbox"
                           checked={selectedSubtopics.includes(item.name)}
                           onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedSubtopics((prev) => Array.from(new Set([...prev, item.name])));
-                            } else {
-                              setSelectedSubtopics((prev) => prev.filter((sub) => sub !== item.name));
-                            }
+                            if (e.target.checked) setSelectedSubtopics((prev) => Array.from(new Set([...prev, item.name])));
+                            else setSelectedSubtopics((prev) => prev.filter((sub) => sub !== item.name));
                           }}
                         />
                         <span className="muted" style={{ fontSize: '0.85rem' }}>{item.accuracy < masteryThreshold ? 'Recommended' : 'Optional'}</span>
@@ -541,7 +745,7 @@ export default function PreparePage() {
             <button onClick={startDrill} disabled={!canStartDrill}>
               {isLoading ? 'Preparing…' : 'Start drills'}
             </button>
-            <button type="button" className="btn btn-outline" onClick={handleSkipToSummary} disabled={selectedSubtopics.length === 0}>
+            <button type="button" className="btn btn-outline" onClick={handleSkipToSummary} disabled={!Object.keys(scoreMap).length}>
               Skip to summary
             </button>
           </div>
@@ -644,10 +848,10 @@ export default function PreparePage() {
           )}
 
           <div className="mt-3 flex" style={{ gap: 12 }}>
-            <button onClick={() => createPlan({ compact: mapCompact })} disabled={isLoading}>
+            <button onClick={restartPlan} disabled={isLoading}>
               Restart this plan
             </button>
-            <button className="btn btn-outline" onClick={startDrill} disabled={isLoading}>
+            <button className="btn btn-outline" onClick={startDrill} disabled={isLoading || !selectedSubtopics.length}>
               Generate a few more questions
             </button>
           </div>
