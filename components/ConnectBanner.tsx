@@ -71,9 +71,9 @@ export default function ConnectBanner() {
           <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-white/60">
             <div>Copyright © {new Date().getFullYear()} Archit Mishra. All rights reserved.</div>
             <div>
-              <a href="#" className="hover:text-white">User Terms &amp; Conditions</a>
+              <Link href="/terms" className="hover:text-white">User Terms &amp; Conditions</Link>
               <span className="mx-2">|</span>
-              <a href="#" className="hover:text-white">Privacy Policy</a>
+              <Link href="/privacy" className="hover:text-white">Privacy Policy</Link>
             </div>
           </div>
         </div>
