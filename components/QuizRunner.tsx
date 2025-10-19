@@ -7,7 +7,28 @@ import { Timer } from './Timer';
 
 type Answers = Record<string, string | undefined>;
 
-export function QuizRunner({ quiz, onPracticeMore }: { quiz: QuizSet; onPracticeMore?: (missed: QuizQuestion[]) => void }) {
+export interface QuizRunSummary {
+  quiz: QuizSet;
+  answers: Answers;
+  correctCount: number;
+  answeredCount: number;
+  total: number;
+  missed: QuizQuestion[];
+  expired: boolean;
+  submittedAt: string;
+}
+
+export function QuizRunner({
+  quiz,
+  onPracticeMore,
+  onSubmitComplete,
+  showPracticeButton = true,
+}: {
+  quiz: QuizSet;
+  onPracticeMore?: (missed: QuizQuestion[]) => void;
+  onSubmitComplete?: (summary: QuizRunSummary) => void;
+  showPracticeButton?: boolean;
+}) {
   const [answers, setAnswers] = useState<Answers>({});
   const [submitted, setSubmitted] = useState(false);
   const [expired, setExpired] = useState(false);
@@ -23,18 +44,37 @@ export function QuizRunner({ quiz, onPracticeMore }: { quiz: QuizSet; onPractice
 
   const missed = useMemo(() => quiz.questions.filter((q) => answers[q.id] && answers[q.id] !== q.correctChoiceId), [answers, quiz.questions]);
 
+  const finalize = useCallback(
+    (forceExpired = false) => {
+      const summary: QuizRunSummary = {
+        quiz,
+        answers: { ...answers },
+        correctCount,
+        answeredCount,
+        total,
+        missed: missed.slice(),
+        expired: forceExpired || expired,
+        submittedAt: new Date().toISOString(),
+      };
+      setExpired((prev) => prev || forceExpired);
+      setSubmitted(true);
+      onSubmitComplete?.(summary);
+      setTimeout(() => {
+        if (topRef.current) topRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        else if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 0);
+      return summary;
+    },
+    [answers, correctCount, answeredCount, total, quiz, expired, onSubmitComplete, missed]
+  );
+
   const onSubmit = useCallback(() => {
-    setSubmitted(true);
-    setTimeout(() => {
-      if (topRef.current) topRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      else if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, 0);
-  }, []);
+    if (!submitted) finalize(false);
+  }, [finalize, submitted]);
 
   const timeUp = useCallback(() => {
-    setExpired(true);
-    setSubmitted(true);
-  }, []);
+    if (!submitted) finalize(true);
+  }, [finalize, submitted]);
 
   return (
     <div className="mt-3" ref={topRef}>
@@ -71,9 +111,11 @@ export function QuizRunner({ quiz, onPracticeMore }: { quiz: QuizSet; onPractice
                 {expired && <div className="warn">Time expired. Unanswered are marked incorrect.</div>}
               </div>
             </div>
-            <div>
-              <button onClick={() => onPracticeMore?.(missed)} disabled={missed.length === 0}>Practice similar to missed</button>
-            </div>
+            {showPracticeButton && (
+              <div>
+                <button onClick={() => onPracticeMore?.(missed)} disabled={missed.length === 0}>Practice similar to missed</button>
+              </div>
+            )}
           </div>
         );
       })() : null}
@@ -94,7 +136,13 @@ export function QuizRunner({ quiz, onPracticeMore }: { quiz: QuizSet; onPractice
 
       {!submitted && (
         <div className="mt-3 flex">
-          <button className="btn" onClick={onSubmit} disabled={answeredCount === 0}>Submit</button>
+          <button
+            className="btn"
+            onClick={onSubmit}
+            disabled={answeredCount === 0}
+          >
+            Submit
+          </button>
           <span className="muted">You can submit anytime.</span>
         </div>
       )}

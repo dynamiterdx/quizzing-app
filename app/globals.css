@@ -198,6 +198,12 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px
 .row { display: grid; gap: 12px; }
 .row.cols-2 { grid-template-columns: 1fr 1fr; }
 .row.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.table-responsive { overflow-x: auto; }
+.prep-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; min-width: 320px; }
+.prep-table th, .prep-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); text-align: left; }
+.prep-table th { font-weight: 700; color: var(--text); background: rgba(124, 58, 237, 0.08); }
+.prep-table tbody tr:nth-child(even) { background: rgba(124, 58, 237, 0.04); }
+.prep-table tbody tr:hover { background: rgba(124, 58, 237, 0.08); }
 @media (max-width: 700px) { .row.cols-2, .row.cols-3 { grid-template-columns: 1fr; } }
 
 .space { height: 12px; }

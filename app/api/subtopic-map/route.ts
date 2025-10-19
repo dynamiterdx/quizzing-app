@@ -18,6 +18,7 @@ const mapSchema = {
         properties: {
           id: { type: 'string' },
           name: { type: 'string' },
+          description: { type: 'string' },
           children: {
             type: 'array',
             items: {
@@ -27,6 +28,7 @@ const mapSchema = {
               properties: {
                 id: { type: 'string' },
                 name: { type: 'string' },
+                description: { type: 'string' },
                 children: {
                   type: 'array',
                   items: {
@@ -36,6 +38,7 @@ const mapSchema = {
                     properties: {
                       id: { type: 'string' },
                       name: { type: 'string' },
+                      description: { type: 'string' },
                     },
                   },
                 },
@@ -49,10 +52,25 @@ const mapSchema = {
 } as const;
 
 export async function POST(req: NextRequest) {
-  const { topic, language, provider, perplexityKey, azureKey }: { topic: string; language: string; provider?: ModelProvider; perplexityKey?: string; azureKey?: string } = await req.json();
+  const {
+    topic,
+    language,
+    provider,
+    perplexityKey,
+    azureKey,
+    compact,
+  }: {
+    topic: string;
+    language: string;
+    provider?: ModelProvider;
+    perplexityKey?: string;
+    azureKey?: string;
+    compact?: boolean;
+  } = await req.json();
   const modelProvider: ModelProvider = provider === 'perplexity' || provider === 'perplexity-pro' ? provider : 'azure';
-  const system = `You are a tutor. Build a small, practical subtopic map (2–3 levels max) covering the essential parts of the given topic. Keep names concise and intuitive. Return only JSON.`;
-  const user = `Topic: ${topic}. Language: ${language}. Keep the map small and useful for practice.`;
+  const system = `You are a tutor. Build a concise subtopic map (maximum 2 levels deep) that helps a learner plan study sessions. Each node must include a short description (12 words or fewer) explaining what to cover. Return only JSON.`;
+  const sizeHint = compact ? 'Aim for the 3–4 most essential subtopics with no children unless critical.' : 'Include the 4–6 top subtopics, and children only when it clarifies the arc.';
+  const user = `Topic: ${topic}. Language: ${language}. ${sizeHint}`;
   try {
     const data = await (modelProvider === 'azure'
       ? azureChatJson<any>({ system, user, jsonSchema: mapSchema as any, retries: 1, apiKey: azureKey })

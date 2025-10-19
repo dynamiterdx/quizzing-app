@@ -25,6 +25,7 @@ export interface QuizSet {
 export interface SubtopicNode {
   id: string;
   name: string;
+  description?: string;
   children?: SubtopicNode[];
 }
 
@@ -43,4 +44,6 @@ export interface PrepSummary {
   topic: string;
   scores: SubtopicScore[];
   pointers: { subtopic: string; tip: string }[];
+  headline?: string;
+  encouragement?: string;
 }

@@ -42,10 +42,27 @@ const diagSchema = {
 } as const;
 
 export async function POST(req: NextRequest) {
-  const { topic, subtopics, language, provider, perplexityKey, azureKey }: { topic: string; subtopics: string[]; language: string; provider?: ModelProvider; perplexityKey?: string; azureKey?: string } = await req.json();
+  const {
+    topic,
+    subtopics,
+    language,
+    provider,
+    perplexityKey,
+    azureKey,
+    questionCount,
+  }: {
+    topic: string;
+    subtopics: string[];
+    language: string;
+    provider?: ModelProvider;
+    perplexityKey?: string;
+    azureKey?: string;
+    questionCount?: number;
+  } = await req.json();
   const modelProvider: ModelProvider = provider === 'perplexity' || provider === 'perplexity-pro' ? provider : 'azure';
+  const count = Math.max(4, Math.min(questionCount ?? 6, 10));
   const system = `You are a tutor. Create a short diagnostic multiple-choice quiz sampling across given subtopics. Exactly one correct answer per question. Use Markdown and LaTeX where useful for clarity in questions, choices, and explanations (formulas $...$ / $$...$$, code in backticks). Keep questions clear and explanations brief. Return only JSON.`;
-  const user = `Topic: ${topic}. Subtopics to sample: ${Array.isArray(subtopics) ? subtopics.join(', ') : ''}. Language: ${language}. Number of questions: 6. Difficulty levels available: beginner, elementary, intermediate, advanced, expert.`;
+  const user = `Topic: ${topic}. Subtopics to sample: ${Array.isArray(subtopics) ? subtopics.join(', ') : ''}. Language: ${language}. Number of questions: ${count}. Mix beginner through advanced difficulty where sensible. Only one unambiguous correct option per question.`;
   try {
     for (let i = 0; i < 3; i++) {
       const quiz = await (modelProvider === 'azure'
