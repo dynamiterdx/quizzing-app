@@ -31,6 +31,24 @@ export default function TargetedPage() {
 
   const canGenerate = topic.trim().length > 2 && numQuestions >= 3 && numQuestions <= 15 && isConfigured;
 
+  const formatError = useCallback((raw: string, fallback: string) => {
+    let text = raw;
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed?.error) text = String(parsed.error);
+    } catch {
+      // raw was not JSON; keep original string
+    }
+    if (/429/.test(text)) return `Rate limited. Please wait a few seconds and try again.\n\nDetails: ${text}`;
+    if (/401/.test(text) || /api key/i.test(text)) {
+      return `Check your Azure OpenAI API key and endpoint in LLM Settings, then try again.\n\nDetails: ${text}`;
+    }
+    if (/deployment/i.test(text) || /404/.test(text)) {
+      return `Verify your Azure deployment name and API version match the values in .env.local.\n\nDetails: ${text}`;
+    }
+    return `${fallback}\n\nDetails: ${text}`;
+  }, []);
+
   const generateQuiz = useCallback(async () => {
     setLoading(true); setError(null); setQuiz(null);
     try {
@@ -39,15 +57,18 @@ export default function TargetedPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ topic, difficulty, numQuestions, timed, language, provider, perplexityKey, azureKey }),
       });
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || 'Request failed');
+      }
       const q = await res.json();
       const durationSeconds = timed ? Math.max(45, Math.round(numQuestions * 45)) : undefined;
       setQuiz({ ...q, durationSeconds });
     } catch (e: any) {
-      const msg = e?.message || 'Failed to generate quiz. Please retry.';
-      setError(msg.includes('429') ? 'Rate limited. Please wait a few seconds and try again.' : 'Error generating quiz. Please retry.');
+      const raw = e?.message || 'Failed to generate quiz.';
+      setError(formatError(raw, 'Error generating quiz. Please retry.'));
     } finally { setLoading(false); }
-  }, [topic, difficulty, numQuestions, timed, language, provider, perplexityKey, azureKey]);
+  }, [topic, difficulty, numQuestions, timed, language, provider, perplexityKey, azureKey, formatError]);
 
   const practiceMore = useCallback(async (missed: QuizQuestion[]) => {
     if (!missed.length) return;
@@ -58,14 +79,18 @@ export default function TargetedPage() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ topic, targetSubtopics: missedSubtopics, targetDifficulty: difficulty, language, provider, perplexityKey, azureKey }),
       });
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || 'Request failed');
+      }
       const q = await res.json();
       const durationSeconds = timed ? Math.max(45, Math.round((q?.questions?.length || 4) * 45)) : undefined;
       setQuiz({ topic, difficulty, language, timed, durationSeconds, questions: q.questions });
     } catch (e: any) {
-      setError('Could not generate follow-up questions. Please retry.');
+      const raw = e?.message || 'Failed to generate drill questions.';
+      setError(formatError(raw, 'Could not generate follow-up questions. Please retry.'));
     } finally { setLoading(false); }
-  }, [topic, difficulty, language, timed, provider, perplexityKey, azureKey]);
+  }, [topic, difficulty, language, timed, provider, perplexityKey, azureKey, formatError]);
 
   return (
     <div className="card">

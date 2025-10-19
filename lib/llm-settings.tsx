@@ -11,7 +11,7 @@ export interface LLMSettings {
 
 interface LLMSettingsContextValue {
   settings: LLMSettings;
-  setSettings: (value: { provider: ModelProvider; perplexityKey?: string }) => void;
+  setSettings: (value: { provider: ModelProvider; perplexityKey?: string; azureKey?: string }) => void;
   isConfigured: boolean;
 }
 
@@ -45,7 +45,7 @@ export function LLMSettingsProvider({ children }: { children: React.ReactNode })
     setSettingsState(loadSettings());
   }, []);
 
-  const setSettings = (next: { provider: ModelProvider; perplexityKey?: string }) => {
+  const setSettings = (next: { provider: ModelProvider; perplexityKey?: string; azureKey?: string }) => {
     const payload: LLMSettings = { ...defaultSettings, ...next, hasChosen: true };
     setSettingsState(payload);
     if (typeof window !== 'undefined') {

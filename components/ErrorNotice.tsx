@@ -2,7 +2,7 @@ export function ErrorNotice({ message, retry }: { message: string; retry?: () =>
   return (
     <div className="card" role="alert" aria-live="assertive">
       <strong>Something went wrong.</strong>
-      <div className="mt-1 muted">{message}</div>
+      <div className="mt-1 muted" style={{ whiteSpace: 'pre-wrap' }}>{message}</div>
       {retry && (
         <div className="mt-2">
           <button onClick={retry}>Try again</button>
@@ -11,4 +11,3 @@ export function ErrorNotice({ message, retry }: { message: string; retry?: () =>
     </div>
   );
 }
-

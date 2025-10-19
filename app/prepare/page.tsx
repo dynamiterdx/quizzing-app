@@ -200,13 +200,13 @@ export default function PreparePage() {
         });
         setDrillTimed(diagnosticTimed);
         setDrillMinutes(Math.max(3, Math.min(8, diagnosticMinutes)));
-        setStep('diagnostic');
-      } catch (e: any) {
-        setError('Failed to build the subtopic map or diagnostic quiz. Please try again.');
-        setStep('setup');
-      } finally {
-        setLoadingLabel(null);
-      }
+    setStep('diagnostic');
+  } catch (e: any) {
+    setError('Could not reach the AI model. Check your API key in LLM Settings and try again.');
+    setStep('setup');
+  } finally {
+    setLoadingLabel(null);
+  }
     },
     [topic, language, provider, perplexityKey, azureKey, diagnosticCount, diagnosticTimed, diagnosticMinutes]
   );
@@ -276,11 +276,11 @@ export default function PreparePage() {
       });
       setDrillSummary(null);
       setStep('drill');
-    } catch (e: any) {
-      setError('Could not generate drill questions. Please retry.');
-    } finally {
-      setLoadingLabel(null);
-    }
+  } catch (e: any) {
+    setError('Could not reach the AI model for drills. Check your API key in LLM Settings and try again.');
+  } finally {
+    setLoadingLabel(null);
+  }
   }, [topic, selectedSubtopics, drillDifficulty, drillTimed, drillMinutes, language, provider, perplexityKey, azureKey]);
 
   const transitionToSummary = useCallback(
@@ -308,7 +308,7 @@ export default function PreparePage() {
           scores: toSubtopicScores(scores),
         });
       } catch (e: any) {
-        setError('Could not craft your prep summary. Please refresh and try again.');
+        setError('We could not craft your prep summary. Check your API key and try again.');
       } finally {
         setSummaryLoading(false);
       }
