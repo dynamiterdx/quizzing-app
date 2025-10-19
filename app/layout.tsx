@@ -42,9 +42,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <SiteHeader />
             <main>{children}</main>
           </div>
-          <ConnectBanner>
-            <footer className="site-footer">No accounts. Session only. Be kind to yourself.</footer>
-          </ConnectBanner>
+          <ConnectBanner />
+          <footer className="site-footer">No accounts. Session only. Be kind to yourself.</footer>
         </LLMSettingsProvider>
       </body>
     </html>
