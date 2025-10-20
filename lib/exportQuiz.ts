@@ -174,8 +174,24 @@ function toPlainText(input: string | undefined): string {
     .replace(/\*(.*?)\*/g, '$1')
     .replace(/`([^`]+)`/g, '$1')
     .replace(/~~(.*?)~~/g, '$1')
+    .replace(/\$\$(.+?)\$\$/gs, (_, expr) => renderMath(expr))
+    .replace(/\$(.+?)\$/g, (_, expr) => renderMath(expr))
     .replace(/\[(.*?)\]\([^)]*\)/g, '$1')
     .replace(/<[^>]*>/g, '')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function renderMath(expr: string): string {
+  try {
+    if (typeof window !== 'undefined') {
+      const katexRenderer = (window as any).katex;
+      if (katexRenderer?.renderToString) {
+        return katexRenderer.renderToString(expr, { throwOnError: false, output: 'text' });
+      }
+    }
+  } catch (err) {
+    // swallow
+  }
+  return expr;
 }
