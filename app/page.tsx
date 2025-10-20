@@ -1,19 +1,8 @@
 import Link from 'next/link';
-import Image from 'next/image';
 
 export default function HomePage() {
   return (
     <div>
-      <section className="hero" aria-label="Welcome">
-        <h2>Daily Practice, Real Progress</h2>
-        <p>Targeted quizzes and adaptive prep. Clear, quick, effective.</p>
-        {/* CTA buttons removed to avoid repetition with feature cards */}
-        <div className="hero-logo-right" aria-hidden>
-          <Image src="/white_logo.png" alt="" width={80} height={80} priority />
-        </div>
-      </section>
-
-      <div className="space" />
       <div className="mode-grid">
         <div className="card feature-card" role="region" aria-label="Targeted Quiz">
           <div className="badge" aria-hidden>🎯</div>

@@ -20,7 +20,8 @@ export function SiteHeader() {
         )}
         <div className="site-header-copy">
           <span className="brand">Quizzaroo</span>
-          <span className="muted">Study smarter with adaptive AI drills</span>
+          <h2 className="site-header-title">Daily Practice, Real Progress</h2>
+          <p className="site-header-sub">Targeted quizzes and adaptive prep. Clear, quick, effective.</p>
         </div>
         <a className="llm-button" href="/llm-settings">LLM settings</a>
       </div>
