@@ -6,6 +6,7 @@ import { LoadingQuiz } from '@/components/LoadingQuiz';
 import { QuizRunner, QuizRunSummary } from '@/components/QuizRunner';
 import { useLLMSettings } from '@/lib/llm-settings';
 import type { Difficulty, QuizSet, SubtopicNode } from '@/types/quiz';
+import { LANGUAGE_OPTIONS, getLanguageLabel } from '@/lib/languages';
 
 type Step = 'setup' | 'map' | 'diagnostic' | 'select' | 'drill' | 'summary';
 type Weight = 'low' | 'med' | 'high';
@@ -83,7 +84,7 @@ export default function PreparePage() {
   const { settings, isConfigured } = useLLMSettings();
 
   const [topic, setTopic] = useState('');
-  const [language, setLanguage] = useState('English');
+  const [language, setLanguage] = useState('en');
   const [diagnosticCount, setDiagnosticCount] = useState(12);
   const [diagnosticTimed, setDiagnosticTimed] = useState(false);
   const [diagnosticMinutes, setDiagnosticMinutes] = useState(6);
@@ -127,6 +128,7 @@ export default function PreparePage() {
   const provider = settings.provider;
   const perplexityKey = settings.perplexityKey;
   const azureKey = settings.azureKey;
+  const languageLabel = useMemo(() => getLanguageLabel(language), [language]);
 
   const isLoading = loadingLabel !== null;
   const masteryReached = useMemo(
@@ -168,7 +170,7 @@ export default function PreparePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           topic: trimmedTopic,
-          language,
+          language: languageLabel,
           provider,
           perplexityKey,
           azureKey,
@@ -196,7 +198,7 @@ export default function PreparePage() {
     } finally {
       setLoadingLabel(null);
     }
-  }, [topic, language, provider, perplexityKey, azureKey, resetLearningState]);
+  }, [topic, languageLabel, provider, perplexityKey, azureKey, resetLearningState]);
 
   const simplifyMap = useCallback(() => {
     fetchSubtopicMap({ compact: true });
@@ -276,7 +278,7 @@ export default function PreparePage() {
         body: JSON.stringify({
           topic: topic.trim(),
           subtopics: payloadSubtopics,
-          language,
+          language: languageLabel,
           provider,
           perplexityKey,
           azureKey,
@@ -308,7 +310,7 @@ export default function PreparePage() {
     } finally {
       setLoadingLabel(null);
     }
-  }, [editableSubtopics, topic, language, provider, perplexityKey, azureKey, diagnosticCount, diagnosticTimed, diagnosticMinutes]);
+  }, [editableSubtopics, topic, languageLabel, provider, perplexityKey, azureKey, diagnosticCount, diagnosticTimed, diagnosticMinutes]);
 
   const handleDiagnosticComplete = useCallback((summary: QuizRunSummary) => {
     const accuracies = computeAccuracies(summary);
@@ -355,7 +357,7 @@ export default function PreparePage() {
           topic,
           targetSubtopics: selectedSubtopics,
           targetDifficulty: drillDifficulty,
-          language,
+          language: languageLabel,
           provider,
           perplexityKey,
           azureKey,
@@ -380,7 +382,7 @@ export default function PreparePage() {
     } finally {
       setLoadingLabel(null);
     }
-  }, [topic, selectedSubtopics, drillDifficulty, drillTimed, drillMinutes, language, provider, perplexityKey, azureKey]);
+  }, [topic, selectedSubtopics, drillDifficulty, drillTimed, drillMinutes, languageLabel, provider, perplexityKey, azureKey]);
 
   const transitionToSummary = useCallback(async () => {
     if (!Object.keys(scoreMap).length) return;
@@ -393,7 +395,7 @@ export default function PreparePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           topic,
-          language,
+          language: languageLabel,
           provider,
           perplexityKey,
           azureKey,
@@ -416,7 +418,7 @@ export default function PreparePage() {
     } finally {
       setSummaryLoading(false);
     }
-  }, [scoreMap, topic, language, provider, perplexityKey, azureKey]);
+  }, [scoreMap, topic, languageLabel, provider, perplexityKey, azureKey]);
 
   const handleDrillComplete = useCallback((summary: QuizRunSummary) => {
     const accuracies = computeAccuracies(summary);
@@ -466,7 +468,7 @@ export default function PreparePage() {
     fetchSubtopicMap({ compact: mapCompact });
   };
 
-  const canStartPlan = topic.trim().length >= 3 && diagnosticCount >= 4 && diagnosticCount <= 10 && isConfigured && !isLoading;
+  const canStartPlan = topic.trim().length >= 3 && diagnosticCount >= 6 && diagnosticCount <= 60 && isConfigured && !isLoading;
   const canApprove = editableSubtopics.some((sub) => sub.included && sub.name.trim().length > 0) && !isLoading;
   const canStartDrill = selectedSubtopics.length > 0 && !isLoading;
 
@@ -485,7 +487,11 @@ export default function PreparePage() {
             </div>
             <div>
               <label htmlFor="language">Language</label>
-              <input id="language" value={language} onChange={(e) => setLanguage(e.target.value)} />
+              <select id="language" value={language} onChange={(e) => setLanguage(e.target.value)}>
+                {LANGUAGE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label htmlFor="diagCount">Minimum diagnostic questions</label>

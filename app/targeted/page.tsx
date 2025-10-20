@@ -6,13 +6,14 @@ import { ErrorNotice } from '@/components/ErrorNotice';
 import { useLLMSettings } from '@/lib/llm-settings';
 import { useRouter } from 'next/navigation';
 import { LoadingQuiz } from '@/components/LoadingQuiz';
+import { LANGUAGE_OPTIONS, getLanguageLabel } from '@/lib/languages';
 
 export default function TargetedPage() {
   const [topic, setTopic] = useState('');
   const [difficulty, setDifficulty] = useState<'beginner' | 'elementary' | 'intermediate' | 'advanced' | 'expert'>('beginner');
   const [numQuestions, setNumQuestions] = useState(6);
   const [timed, setTimed] = useState(false);
-  const [language, setLanguage] = useState('English');
+  const [language, setLanguage] = useState('en');
   const { settings, isConfigured } = useLLMSettings();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -30,6 +31,7 @@ export default function TargetedPage() {
   const azureKey = settings.azureKey;
 
   const canGenerate = topic.trim().length > 2 && numQuestions >= 3 && numQuestions <= 15 && isConfigured;
+  const languageLabel = useMemo(() => getLanguageLabel(language), [language]);
 
   const formatError = useCallback((raw: string, fallback: string) => {
     let text = raw;
@@ -55,7 +57,7 @@ export default function TargetedPage() {
       const res = await fetch('/api/generate-quiz', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic, difficulty, numQuestions, timed, language, provider, perplexityKey, azureKey }),
+        body: JSON.stringify({ topic, difficulty, numQuestions, timed, language: languageLabel, provider, perplexityKey, azureKey }),
       });
       if (!res.ok) {
         const text = await res.text();
@@ -63,7 +65,7 @@ export default function TargetedPage() {
       }
       const q = await res.json();
       const durationSeconds = timed ? Math.max(45, Math.round(numQuestions * 45)) : undefined;
-      setQuiz({ ...q, durationSeconds });
+      setQuiz({ ...q, durationSeconds, language: languageLabel });
     } catch (e: any) {
       const raw = e?.message || 'Failed to generate quiz.';
       setError(formatError(raw, 'Error generating quiz. Please retry.'));
@@ -77,7 +79,7 @@ export default function TargetedPage() {
       const missedSubtopics = Array.from(new Set(missed.map((m) => m.subtopic).filter(Boolean))) as string[];
       const res = await fetch('/api/drill-quiz', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic, targetSubtopics: missedSubtopics, targetDifficulty: difficulty, language, provider, perplexityKey, azureKey }),
+        body: JSON.stringify({ topic, targetSubtopics: missedSubtopics, targetDifficulty: difficulty, language: languageLabel, provider, perplexityKey, azureKey }),
       });
       if (!res.ok) {
         const text = await res.text();
@@ -85,7 +87,7 @@ export default function TargetedPage() {
       }
       const q = await res.json();
       const durationSeconds = timed ? Math.max(45, Math.round((q?.questions?.length || 4) * 45)) : undefined;
-      setQuiz({ topic, difficulty, language, timed, durationSeconds, questions: q.questions });
+      setQuiz({ topic, difficulty, language: languageLabel, timed, durationSeconds, questions: q.questions });
     } catch (e: any) {
       const raw = e?.message || 'Failed to generate drill questions.';
       setError(formatError(raw, 'Could not generate follow-up questions. Please retry.'));
@@ -118,7 +120,11 @@ export default function TargetedPage() {
         </div>
         <div>
           <label htmlFor="language">Language</label>
-          <input id="language" value={language} onChange={(e) => setLanguage(e.target.value)} />
+          <select id="language" value={language} onChange={(e) => setLanguage(e.target.value)}>
+            {LANGUAGE_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
         </div>
       </div>
       <div className="mt-2 flex">
