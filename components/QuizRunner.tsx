@@ -4,6 +4,7 @@ import { QuizQuestion, QuizSet } from '@/types/quiz';
 import { ProgressBar } from './ProgressBar';
 import { QuestionCard } from './QuestionCard';
 import { Timer } from './Timer';
+import { exportQuizAsPdf } from '@/lib/exportQuiz';
 
 type Answers = Record<string, string | undefined>;
 
@@ -134,18 +135,21 @@ export function QuizRunner({
         ))}
       </div>
 
-      {!submitted && (
-        <div className="mt-3 flex">
-          <button
-            className="btn"
-            onClick={onSubmit}
-            disabled={answeredCount === 0}
-          >
-            Submit
-          </button>
-          <span className="muted">You can submit anytime.</span>
-        </div>
-      )}
+      <div className="mt-3 flex" style={{ gap: 12, alignItems: 'center' }}>
+        {!submitted && (
+          <>
+            <button
+              className="btn"
+              onClick={onSubmit}
+              disabled={answeredCount === 0}
+            >
+              Submit
+            </button>
+            <span className="muted">You can submit anytime.</span>
+          </>
+        )}
+        <button className="btn btn-outline" onClick={() => exportQuizAsPdf(quiz, answers)}>Export quiz as PDF</button>
+      </div>
     </div>
   );
 }
