@@ -43,7 +43,7 @@ p { margin: 0 0 1rem; font-size: 1rem; }
 .muted { font-size: 0.95rem; color: var(--muted); }
 .container { max-width: 1040px; margin: 0 auto; padding: 0 16px 16px; flex: 1 0 auto; }
 .container main { margin-top: 56px; }
-.site-header { position: sticky; top: 0; left: 0; right: 0; z-index: 40; margin: 0; }
+.site-header { position: relative; margin: 0; pointer-events: none; }
 .site-header-shell {
   position: absolute;
   inset: 0;
@@ -64,6 +64,7 @@ p { margin: 0 0 1rem; font-size: 1rem; }
   padding: calc(env(safe-area-inset-top) + 16px) clamp(24px, 6vw, 64px) 28px;
   border-radius: 0 0 28px 28px;
   color: #f7f5ff;
+  pointer-events: auto;
 }
 .site-header-copy { display: flex; flex-direction: column; gap: 6px; max-width: 640px; padding-right: 24px; }
 .brand { font-size: 1.25rem; letter-spacing: 0.3px; background: linear-gradient(90deg, #aed6ff, #ffffff); -webkit-background-clip: text; background-clip: text; color: transparent; font-weight: 800; }

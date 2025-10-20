@@ -84,7 +84,7 @@ export default function PreparePage() {
 
   const [topic, setTopic] = useState('');
   const [language, setLanguage] = useState('English');
-  const [diagnosticCount, setDiagnosticCount] = useState(6);
+  const [diagnosticCount, setDiagnosticCount] = useState(12);
   const [diagnosticTimed, setDiagnosticTimed] = useState(false);
   const [diagnosticMinutes, setDiagnosticMinutes] = useState(6);
 
@@ -269,6 +269,7 @@ export default function PreparePage() {
         name: sub.name.trim(),
         weight: sub.weight,
       }));
+      const desiredCount = Math.max(diagnosticCount, included.length * 3);
       const res = await fetch('/api/diagnostic-quiz', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -279,12 +280,17 @@ export default function PreparePage() {
           provider,
           perplexityKey,
           azureKey,
-          questionCount: diagnosticCount,
+          questionCount: desiredCount,
         }),
       });
       if (!res.ok) throw new Error(await res.text());
       const diag = await res.json();
-      const durationSeconds = diagnosticTimed ? Math.max(60, clampInt(diagnosticMinutes * 60, 60, 30 * 60)) : undefined;
+      const questionTotal = Array.isArray(diag?.questions) ? diag.questions.length : desiredCount;
+      let durationSeconds: number | undefined;
+      if (diagnosticTimed) {
+        const perQuestion = Math.max(45, Math.round((diagnosticMinutes * 60) / Math.max(questionTotal, 1)));
+        durationSeconds = clampInt(perQuestion * questionTotal, 60, questionTotal * 120);
+      }
       setApprovedSubtopics(included);
       setDiagnosticQuiz({
         ...diag,
@@ -482,15 +488,18 @@ export default function PreparePage() {
               <input id="language" value={language} onChange={(e) => setLanguage(e.target.value)} />
             </div>
             <div>
-              <label htmlFor="diagCount">Diagnostic question count</label>
+              <label htmlFor="diagCount">Minimum diagnostic questions</label>
               <input
                 id="diagCount"
                 type="number"
-                min={4}
-                max={10}
+                min={6}
+                max={60}
                 value={diagnosticCount}
-                onChange={(e) => setDiagnosticCount(clampInt(Number(e.target.value), 4, 10))}
+                onChange={(e) => setDiagnosticCount(clampInt(Number(e.target.value), 6, 60))}
               />
+              <p className="muted" style={{ fontSize: '0.85rem', marginTop: 6 }}>
+                We&apos;ll target roughly three questions per approved subtopic.
+              </p>
             </div>
             <div>
               <label htmlFor="diagMinutes">Timer (minutes, optional)</label>

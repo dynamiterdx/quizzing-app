@@ -51,14 +51,16 @@ export async function POST(req: NextRequest) {
   const azureKey: string | undefined = body.azureKey;
   const questionCount: number | undefined = body.questionCount;
   const modelProvider: ModelProvider = provider === 'perplexity' || provider === 'perplexity-pro' ? provider : 'azure';
-  const count = Math.max(4, Math.min(questionCount ?? 6, 10));
   const normalizedSubtopics = rawSubtopics.map((entry) => {
     if (typeof entry === 'string') return { name: entry, weight: 'med' };
     return { name: entry?.name ?? 'General', weight: entry?.weight ?? 'med' };
   });
+  const minTotal = Math.max(6, normalizedSubtopics.length * 3);
+  const requestedTotal = typeof questionCount === 'number' ? questionCount : minTotal;
+  const count = Math.max(minTotal, Math.min(requestedTotal, 60));
   const subtopicList = normalizedSubtopics.map((item) => `${item.name} (priority: ${item.weight})`).join(', ');
   const system = `You are a tutor. Create a short diagnostic multiple-choice quiz sampling across given subtopics. Exactly one correct answer per question. Use Markdown and LaTeX where useful for clarity in questions, choices, and explanations (formulas $...$ / $$...$$, code in backticks). Keep questions clear, age-appropriate, and explanations brief. Return only JSON.`;
-  const user = `Topic: ${topic}. Subtopics to sample with priorities: ${subtopicList}. Language: ${language}. Number of questions: ${count}. Mix beginner through advanced difficulty where sensible, giving slightly more coverage to items marked high. Only one unambiguous correct option per question.`;
+  const user = `Topic: ${topic}. Subtopics to sample with priorities: ${subtopicList}. Language: ${language}. Number of questions: ${count}. Ensure each listed subtopic receives at least three distinct questions (higher priority items can receive more). Mix beginner through advanced difficulty where sensible. Only one unambiguous correct option per question.`;
   try {
     for (let i = 0; i < 3; i++) {
       const quiz = await (modelProvider === 'azure'
