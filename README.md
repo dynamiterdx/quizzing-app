@@ -40,8 +40,8 @@ Use whichever view fits your needs, or jump between them with the table of conte
 ### Modes in Plain English
 - `🎯 Targeted Quiz` — Type a topic (e.g., “Binomial Theorem” or “Intro Spanish verbs”), choose a difficulty, and instantly get a multiple-choice quiz. The app grades itself and shows you the reasoning behind each correct answer. Missed anything? Click “Practice similar to missed” to get tailored follow-ups.
 - `📈 Help Me Prepare` — Start with a broad goal (like “Statistics” or “Anatomy basics”). Quizzaroo will:
-  1. Build a simple subtopic map so you see the terrain.
-  2. Run a short diagnostic quiz across those subtopics.
+  1. Build a simple subtopic map and let you edit, reorder, include/exclude, or simplify it before any questions are generated.
+  2. Run a diagnostic quiz with ~3 questions per approved subtopic.
   3. Identify weaker areas, let you fine-tune the list, then drill with fresh questions.
   4. Track how your score in those areas improves across rounds.
 
@@ -51,17 +51,18 @@ Both modes work in English by default, and you can request questions in other la
 1. **Open the app** (local URL is usually http://localhost:3000 during testing; deployed URL depends on your host).
 2. **Pick a mode** from the home page cards.
    - First visit? You’ll be redirected to the **LLM Settings** page to choose Azure or Perplexity (Sonar / Sonar Pro) and paste the required API key. Azure OpenAI now also asks for its API key in this screen (endpoints/deployments still come from the server environment). Use the “Use environment key” button if you’ve already set the key in `.env.local`; you can revisit this screen anytime via the header link.
-3. **Fill in the small form**: topic, difficulty, number of questions, optional timer or language.
+3. **Fill in the small form**: topic, difficulty, number of questions, optional timer, and language. Languages supported today: English (`en`), Hindi (`hi`), French (`fr`), Español (`es`), Português (`pt`), Dutch (`nl`), German (`de`), and Turkish (`tr`).
 4. **Hit generate** and answer at your own pace. Keyboard navigation works everywhere.
-5. **Review explanations** to learn why each answer is right, then drill any gaps.
+5. **Review explanations** to learn why each answer is right, then drill any gaps. Use the **Export quiz as PDF** button to share or print the quiz (a clean two-section layout with questions first and solutions after).
 
 ### Feature Highlights
 - **Adaptive follow-up**: the app gathers subtopics from wrong answers and offers targeted drills.
 - **Timed practice**: turn on a countdown to simulate test pressure; unfinished questions count as incorrect when time expires.
 - **Accessible by design**: high contrast, focus rings, semantic regions, ARIA labels, and fully clickable answer areas.
-- **Markdown + LaTeX**: supports math formulas, code snippets, and tables directly in questions and explanations.
+- **Markdown + LaTeX**: supports math formulas, code snippets, and tables directly in questions and explanations (exports render math in plain text so everyone can read it).
 - **Mobile-friendly layout**: cards stack cleanly, inputs have large touch targets, and the timer stays visible.
 - **Gentle scoring feedback**: color-coded score banners celebrate progress rather than punish mistakes.
+- **Printable exports**: download any generated quiz—before or after submission—as a monochrome PDF for candidates or offline review.
 
 ### Friendly FAQ
 - **Is my data saved?** No. Everything lives in your current browser tab. Close it and the session ends.
@@ -126,6 +127,8 @@ Both modes work in English by default, and you can request questions in other la
 - Loading UX: `LoadingQuiz` renders a shimmer skeleton plus a spinner to reassure the learner while the LLM responds.
 - Accessibility: ARIA roles on progress bars, score banners, and radiogroups; focus outlines for keyboard users; high contrast palette and large touch zones.
 - Markdown safety: `MarkdownText` sets `skipHtml` to block raw HTML injection. All Markdown is rendered inside sanitized spans.
+- Language picker: both modes expose a dropdown wired to eight ISO language codes (English, Hindi, French, Español, Português, Dutch, German, Turkish). The label travels with each request so the model can answer in the chosen language.
+- Export: `lib/exportQuiz.ts` converts any generated quiz into a print-ready two-section PDF via a temporary blob URL and the browser’s native print dialog—no client dependencies required.
 - Timer: runs client-side with second-by-second updates, gracefully expires to mark unanswered questions incorrect.
 - Styling: Single global stylesheet with design tokens, gradients for hero/score banners, and consistent spacing utilities.
 
