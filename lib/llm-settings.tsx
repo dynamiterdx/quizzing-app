@@ -32,7 +32,7 @@ function loadSettings(): LLMSettings {
     if (!raw) return defaultSettings;
     const parsed = JSON.parse(raw) as LLMSettings;
     if (!parsed?.provider) return defaultSettings;
-    return { hasChosen: true, ...parsed };
+    return { ...parsed, hasChosen: true };
   } catch {
     return defaultSettings;
   }
@@ -46,7 +46,8 @@ export function LLMSettingsProvider({ children }: { children: React.ReactNode })
   }, []);
 
   const setSettings = (next: { provider: ModelProvider; perplexityKey?: string; azureKey?: string }) => {
-    const payload: LLMSettings = { ...defaultSettings, ...next, hasChosen: true };
+    const { hasChosen: _ignore, ...restDefaults } = defaultSettings;
+    const payload: LLMSettings = { ...restDefaults, ...next, hasChosen: true };
     setSettingsState(payload);
     if (typeof window !== 'undefined') {
       window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload));

@@ -1,5 +1,5 @@
 "use client";
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ModelProvider } from '@/types/quiz';
 import { useLLMSettings } from '@/lib/llm-settings';
@@ -10,7 +10,7 @@ const providerOptions: { value: ModelProvider; label: string; help: string }[] =
   { value: 'perplexity-pro', label: 'Perplexity Sonar Pro', help: 'Higher quality Sonar model. Requires API key.' },
 ];
 
-export default function LLMSettingsPage() {
+function LLMSettingsForm() {
   const router = useRouter();
   const params = useSearchParams();
   const { settings, setSettings } = useLLMSettings();
@@ -160,5 +160,13 @@ export default function LLMSettingsPage() {
         </div>
       </form>
     </div>
+  );
+}
+
+export default function LLMSettingsPage() {
+  return (
+    <Suspense fallback={<div className="card"><p className="muted">Loading settings…</p></div>}>
+      <LLMSettingsForm />
+    </Suspense>
   );
 }
