@@ -12,8 +12,10 @@ export default function ConnectBanner() {
           <div className="flex items-center justify-between gap-6">
             <h2 className="text-3xl sm:text-4xl font-extrabold">Let&apos;s build audit-grade GenAI</h2>
             <Link
-              href="mailto:architmishrapro@gmail.com?subject=Say%20hello%20to%20Archit&body=Hi%20Archit%2C%0A%0AI%20came%20across%20your%20portfolio%20and%20wanted%20to%20connect%20about..."
+              href="https://archit-mishra.vercel.app/"
               className="group inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#ffd24d] to-[#ffad33] text-[#2c1d05] px-5 py-3 font-semibold shadow-[0_12px_28px_rgba(255,179,71,0.32)] transition hover:shadow-[0_16px_32px_rgba(255,179,71,0.38)] hover:-translate-y-[1px]"
+              target="_blank"
+              rel="noreferrer"
             >
               <span>Get in Touch</span>
               <span className="grid h-6 w-6 place-items-center rounded-full bg-[#ff6b2c] text-white transition group-hover:bg-[#ff824c]">
