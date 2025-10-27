@@ -15,7 +15,7 @@ interface LLMSettingsContextValue {
   isConfigured: boolean;
 }
 
-const defaultSettings: LLMSettings = { provider: 'azure', hasChosen: false };
+const defaultSettings: LLMSettings = { provider: 'perplexity', hasChosen: false };
 
 const LLMSettingsContext = createContext<LLMSettingsContextValue>({
   settings: defaultSettings,

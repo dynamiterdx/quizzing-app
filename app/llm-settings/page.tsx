@@ -5,7 +5,6 @@ import { ModelProvider } from '@/types/quiz';
 import { useLLMSettings } from '@/lib/llm-settings';
 
 const providerOptions: { value: ModelProvider; label: string; help: string }[] = [
-  { value: 'azure', label: 'Azure OpenAI', help: 'Uses your server environment credentials.' },
   { value: 'perplexity', label: 'Perplexity Sonar', help: 'Requires a Perplexity API key.' },
   { value: 'perplexity-pro', label: 'Perplexity Sonar Pro', help: 'Higher quality Sonar model. Requires API key.' },
 ];
@@ -65,7 +64,7 @@ function LLMSettingsForm() {
   }, [settings]);
 
   const needsPerplexityKey = provider === 'perplexity' || provider === 'perplexity-pro';
-  const needsAzureKey = provider === 'azure';
+  const needsAzureKey = false;
 
   const next = params.get('next') || '/';
 
@@ -75,10 +74,7 @@ function LLMSettingsForm() {
       setError('Perplexity API key is required for the selected model.');
       return;
     }
-    if (needsAzureKey && !azureKey.trim()) {
-      setError('Azure OpenAI API key is required.');
-      return;
-    }
+    // Azure input hidden; ignore azure validation for now.
     setError(null);
     setSettings({
       provider,
@@ -113,25 +109,6 @@ function LLMSettingsForm() {
             ))}
           </div>
         </fieldset>
-
-        {needsAzureKey && (
-          <div className="mt-3">
-            <label htmlFor="azureKey">Azure OpenAI API Key</label>
-            <input
-              id="azureKey"
-              type="password"
-              placeholder="Azure api-key"
-              value={azureKey}
-              onChange={(e) => setAzureKey(e.target.value)}
-            />
-            <div className="mt-1 flex">
-              <button type="button" className="btn btn-outline" onClick={() => applyEnvKey('azure')} disabled={envLoading}>Use environment key</button>
-            </div>
-            <p className="muted" style={{ fontSize: '0.85rem', marginTop: 6 }}>
-              Used for calls to your Azure OpenAI deployment. Stored in session storage only.
-            </p>
-          </div>
-        )}
 
         {needsPerplexityKey && (
           <div className="mt-3">
