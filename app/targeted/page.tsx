@@ -30,7 +30,7 @@ export default function TargetedPage() {
   const perplexityKey = settings.perplexityKey;
   const azureKey = settings.azureKey;
 
-  const canGenerate = topic.trim().length > 2 && numQuestions >= 3 && numQuestions <= 15 && isConfigured;
+  const canGenerate = topic.trim().length > 2 && numQuestions >= 3 && numQuestions <= 30 && isConfigured;
   const languageLabel = useMemo(() => getLanguageLabel(language), [language]);
 
   const formatError = useCallback((raw: string, fallback: string) => {
@@ -116,7 +116,7 @@ export default function TargetedPage() {
         </div>
         <div>
           <label htmlFor="count">Number of questions</label>
-          <input id="count" type="number" min={3} max={15} value={numQuestions} onChange={(e) => setNumQuestions(parseInt(e.target.value || '0', 10))} />
+          <input id="count" type="number" min={3} max={30} value={numQuestions} onChange={(e) => setNumQuestions(parseInt(e.target.value || '0', 10))} />
         </div>
         <div>
           <label htmlFor="language">Language</label>

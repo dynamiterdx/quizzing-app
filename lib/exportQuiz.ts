@@ -17,22 +17,7 @@ export function exportQuizAsPdf(quiz: QuizSet, answers: Answers) {
   }
 
   const cleanup = () => URL.revokeObjectURL(blobUrl);
-
-  const handleLoad = () => {
-    exportWindow.focus();
-    exportWindow.print();
-    setTimeout(() => {
-      exportWindow.close();
-      cleanup();
-    }, 400);
-    exportWindow.removeEventListener('load', handleLoad);
-  };
-
-  if (exportWindow.document?.readyState === 'complete') {
-    handleLoad();
-  } else {
-    exportWindow.addEventListener('load', handleLoad);
-  }
+  exportWindow.addEventListener('beforeunload', cleanup, { once: true });
 }
 
 function buildPrintableHtml(quiz: QuizSet, answers: Answers): string {
@@ -152,6 +137,17 @@ function buildPrintableHtml(quiz: QuizSet, answers: Answers): string {
           <h2>Section 2: Solutions</h2>
           ${solutionsMarkup}
         </section>
+        <script>
+          window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+              window.focus();
+              window.print();
+            }, 60);
+            window.addEventListener('afterprint', () => {
+              setTimeout(() => window.close(), 120);
+            });
+          });
+        </script>
       </body>
     </html>
   `;
